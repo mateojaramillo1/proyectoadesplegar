@@ -21,9 +21,24 @@ export class API {
   enrutarPeticiones() {
     this.app.use(cors());
     this.app.use(express.json());
+    this.app.get('/', (peticion, respuesta) => {
+      return respuesta.status(200).json({ mensaje: 'API activa' });
+    });
+
+    this.app.get('/health', (peticion, respuesta) => {
+      return respuesta.status(200).json({ status: 'ok' });
+    });
+
     this.app.use(async (peticion, respuesta, next) => {
+      if (peticion.path === '/' || peticion.path === '/health') {
+        return next();
+      }
+
       try {
-        await this.conectarConBD();
+        await Promise.race([
+          this.conectarConBD(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado al conectar con base de datos')), 4000))
+        ]);
         next();
       } catch (error) {
         return respuesta.status(500).json({

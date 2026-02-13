@@ -9,4 +9,6 @@ if (!process.env.VERCEL) {
 	servidorHotel.levantarServidor()
 }
 
-export default servidorHotel.app
+export default function handler(request, response) {
+	return servidorHotel.app(request, response)
+}
