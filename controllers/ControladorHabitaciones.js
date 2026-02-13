@@ -8,29 +8,51 @@ export class ControladorHabitaciones {
     try {
       let datosHabitacion = peticion.body;
 
-      if(datosHabitacion.numeropersonas<2||datosHabitacion.numeropersonas>=5){
-        respuesta.status(400).json({
-          "mensaje":"Revise la cantidad de perasonas ingresadas!!"
-        })
-      }
+      const nombre = datosHabitacion?.nombre;
+      const descripcion = datosHabitacion?.descripcion;
+      const precio = Number(datosHabitacion?.precio);
+      const numeropersonas = Number(datosHabitacion?.numeropersonas);
+      const foto = Array.isArray(datosHabitacion?.foto)
+        ? datosHabitacion.foto
+        : typeof datosHabitacion?.foto === 'string' && datosHabitacion.foto.trim().length > 0
+          ? [datosHabitacion.foto.trim()]
+          : [];
 
-      else if(datosHabitacion.precio<100000){
-        respuesta.status(400).json({
-          "mensaje":"Revise el precio por noche!!"
-        })
-      }
-
-
-      else{
-        await objetoServicioHabitacion.registrar(datosHabitacion);
-        respuesta.status(200).json({
-          mensaje: "exito agregando datos",
+      if (!nombre || !descripcion || foto.length === 0 || Number.isNaN(precio) || Number.isNaN(numeropersonas)) {
+        return respuesta.status(400).json({
+          mensaje: 'Revisa los datos enviados. Todos los campos son obligatorios.'
         });
       }
+
+      if (numeropersonas < 1 || numeropersonas > 20) {
+        return respuesta.status(400).json({
+          mensaje: 'Revisa la cantidad de personas ingresadas.'
+        });
+      }
+
+      if (precio <= 0) {
+        return respuesta.status(400).json({
+          mensaje: 'Revisa el precio por noche.'
+        });
+      }
+
+      const datosNormalizados = {
+        ...datosHabitacion,
+        nombre,
+        descripcion,
+        precio,
+        numeropersonas,
+        foto
+      };
+
+      await objetoServicioHabitacion.registrar(datosNormalizados);
+      return respuesta.status(201).json({
+        mensaje: 'Habitación registrada correctamente.'
+      });
       
     } catch (error) {
-      respuesta.status(400).json({
-        mensje: "fallamos en la operacion " + error,
+      return respuesta.status(500).json({
+        mensaje: 'Fallamos en la operación: ' + error.message,
       });
     }
   }
@@ -60,8 +82,8 @@ export class ControladorHabitaciones {
         habitaciones: await objetoServicioHabitacion.buscarTodas(),
       });
     } catch (error) {
-      respuesta.status(400).json({
-        mensje: "fallamos en la operacion " + error,
+      respuesta.status(500).json({
+        mensaje: "fallamos en la operacion " + error,
       });
     }
   }
