@@ -39,6 +39,12 @@ const Reserva = new Schema({
         type:Number,
         required:true
     }
+    ,
+    usuario: {
+        type: Schema.Types.ObjectId,
+        ref: 'usuarios',
+        required: false
+    }
 
 })
 

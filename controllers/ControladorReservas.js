@@ -1,11 +1,28 @@
 import { ServicioReserva } from "../services/ServicioReserva.js";
+import { ServicioUsuario } from "../services/ServicioUsuario.js";
 export class ControladorReservas {
   constructor() {}
 
   async registrandoReservas(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
-      let datosReserva = peticion.body;
+      // require authenticated user to create reservation so it is linked to their account
+      if (!peticion.usuario || !peticion.usuario.id) {
+        return respuesta.status(401).json({ mensaje: 'Debe iniciar sesión para crear una reserva' });
+      }
+
+      let datosReserva = peticion.body || {};
+      // link reservation to user
+      datosReserva.usuario = peticion.usuario.id;
+
+      // override name/contact with user info (if available) to ensure reservation is under their name
+      const servicioUsuario = new ServicioUsuario();
+      const usuario = await servicioUsuario.buscarPorId(peticion.usuario.id);
+      if (usuario) {
+        datosReserva.nombre = usuario.nombre;
+        datosReserva.apellido = usuario.apellido;
+        if (!datosReserva.telefono) datosReserva.telefono = usuario.telefono || '';
+      }
 
       if (datosReserva.fechainicio > datosReserva.fechafin) {
         respuesta.status(400).json({

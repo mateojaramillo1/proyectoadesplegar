@@ -14,9 +14,19 @@ export class API {
   }
 
   levantarServidor() {
-    this.app.listen(process.env.PORT, () =>
-      console.log(`encendido en ${process.env.PORT}`)
-    );
+    console.log('About to call app.listen on port', process.env.PORT);
+    this.server = this.app.listen(process.env.PORT, () => {
+      console.log(`encendido en ${process.env.PORT}`);
+      try {
+        const addr = this.server.address();
+        console.log('Server address info:', addr);
+      } catch (e) {
+        console.log('Could not get server address:', e && e.message);
+      }
+    });
+    process.on('exit', (code) => {
+      console.log('Process exiting with code', code);
+    });
   }
   enrutarPeticiones() {
     this.app.use(cors());
