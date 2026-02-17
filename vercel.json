@@ -11,5 +11,8 @@
             "src": "/(.*)",
             "dest": "index.js"
         }
-    ]
+    ],
+    "engines": {
+        "node": "24.x"
+    }
 }
