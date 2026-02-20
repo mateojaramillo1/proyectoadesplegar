@@ -5,15 +5,20 @@ let promesaConexion = null;
 
 export async function establecerConexion(){
     try{
+        console.log('Intentando conectar a la base de datos...');
+        console.log('process.env.DATABASE:', process.env.DATABASE);
         if (conexionActiva && mongoose.connection.readyState === 1) {
+            console.log('Ya existe una conexión activa.');
             return conexionActiva;
         }
 
         if (promesaConexion) {
+            console.log('Ya hay una promesa de conexión en curso.');
             return promesaConexion;
         }
 
         if(!process.env.DATABASE){
+            console.error('La variable DATABASE no está configurada');
             throw new Error('La variable DATABASE no está configurada')
         }
 
@@ -29,11 +34,11 @@ export async function establecerConexion(){
 
         conexionActiva = await promesaConexion
         promesaConexion = null
-        console.log("exito conectandonos a base de datos")
+        console.log("✅ Éxito conectándonos a base de datos")
         return conexionActiva
     }catch(error){
         promesaConexion = null
-        console.log("fallamos en la conexion a la base de datos "+error)
+        console.error("❌ Fallamos en la conexión a la base de datos:", error);
         throw error
     }
 }
