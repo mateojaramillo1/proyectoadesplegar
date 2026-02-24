@@ -23,7 +23,7 @@ export class ControladorAuth {
 
       const hash = await bcrypt.hash(password, 10);
       const nuevo = await servicio.registrar({ nombre, apellido, email, telefono, password: hash, rol: 'user' });
-      return respuesta.status(201).json({ mensaje: 'Usuario creado', usuarioId: nuevo._id });
+      return respuesta.status(201).json({ mensaje: 'Usuario creado', usuarioId: nuevo.id });
     } catch (error) {
       return respuesta.status(500).json({ mensaje: 'Error registrando usuario: ' + error.message });
     }
@@ -50,7 +50,7 @@ export class ControladorAuth {
 
       const hash = await bcrypt.hash(password, 10);
       const nuevo = await servicio.registrar({ nombre, apellido, email, telefono, password: hash, rol: 'admin' });
-      return respuesta.status(201).json({ mensaje: 'Administrador creado', usuarioId: nuevo._id });
+      return respuesta.status(201).json({ mensaje: 'Administrador creado', usuarioId: nuevo.id });
     } catch (error) {
       return respuesta.status(500).json({ mensaje: 'Error creando admin: ' + error.message });
     }
@@ -68,8 +68,8 @@ export class ControladorAuth {
       const match = await bcrypt.compare(password, usuario.password);
       if (!match) return respuesta.status(400).json({ mensaje: 'Credenciales inválidas' });
 
-      const token = jwt.sign({ id: usuario._id, rol: usuario.rol }, JWT_SECRET, { expiresIn: '12h' });
-      return respuesta.status(200).json({ mensaje: 'Login correcto', token, usuario: { id: usuario._id, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, rol: usuario.rol } });
+      const token = jwt.sign({ id: usuario.id, rol: usuario.rol }, JWT_SECRET, { expiresIn: '12h' });
+      return respuesta.status(200).json({ mensaje: 'Login correcto', token, usuario: { id: usuario.id, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, rol: usuario.rol } });
     } catch (error) {
       return respuesta.status(500).json({ mensaje: 'Error en login: ' + error.message });
     }

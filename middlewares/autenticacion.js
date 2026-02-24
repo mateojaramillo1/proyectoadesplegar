@@ -18,7 +18,7 @@ export async function verificarToken(peticion, respuesta, siguiente) {
     const usuario = await servicio.buscarPorId(decodificado.id);
     if (!usuario) return respuesta.status(401).json({ mensaje: 'Token inválido (usuario no existe)' });
 
-    peticion.usuario = { id: usuario._id.toString(), rol: usuario.rol, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email };
+    peticion.usuario = { id: usuario.id, rol: usuario.rol, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email };
     siguiente();
   } catch (error) {
     return respuesta.status(401).json({ mensaje: 'Token inválido: ' + error.message });
