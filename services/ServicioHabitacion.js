@@ -1,23 +1,36 @@
-import { modeloHabitacion } from "../models/modeloHabitacion.js";
+
+import { pool } from '../database/mysql.js';
 
 export class ServicioHabitacion {
   constructor() {}
+
   async registrar(datosHabitacion) {
-    let habitacionNueva = new modeloHabitacion(datosHabitacion);
-    return await habitacionNueva.save();
-  }
-  async buscarTodas() {
-    let habitaciones = await modeloHabitacion.find();
-    return habitaciones;
-  }
-  async buscarPorId(idHabitacion) {
-    let habitacion = await modeloHabitacion.findById(idHabitacion);
-    return habitacion;
-  }
-  async editar(idHabitacion, datosHabitacion) {
-    return await modeloHabitacion.findByIdAndUpdate(
-      idHabitacion,
-      datosHabitacion
+    const { nombre, descripcion, precio, numeropersonas, foto } = datosHabitacion;
+    const imagen = Array.isArray(foto) ? foto[0] : (foto || '');
+    const [result] = await pool.execute(
+      'INSERT INTO habitaciones (nombre, descripcion, precio, capacidad, imagen) VALUES (?, ?, ?, ?, ?)',
+      [nombre, descripcion, precio, numeropersonas, imagen]
     );
+    return { id: result.insertId, ...datosHabitacion };
+  }
+
+  async buscarTodas() {
+    const [rows] = await pool.execute('SELECT * FROM habitaciones');
+    return rows;
+  }
+
+  async buscarPorId(idHabitacion) {
+    const [rows] = await pool.execute('SELECT * FROM habitaciones WHERE id = ?', [idHabitacion]);
+    return rows[0];
+  }
+
+  async editar(idHabitacion, datosHabitacion) {
+    const { nombre, descripcion, precio, numeropersonas, foto } = datosHabitacion;
+    const imagen = Array.isArray(foto) ? foto[0] : (foto || '');
+    await pool.execute(
+      'UPDATE habitaciones SET nombre=?, descripcion=?, precio=?, capacidad=?, imagen=? WHERE id=?',
+      [nombre, descripcion, precio, numeropersonas, imagen, idHabitacion]
+    );
+    return { id: idHabitacion, ...datosHabitacion };
   }
 }
