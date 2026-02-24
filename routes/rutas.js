@@ -16,8 +16,8 @@ rutas.get("/buscarhabitaciones",controladorHabitacion.buscandoHabitaciones);
 
 rutas.get("/buscarhabitacion/:idhabitacion",controladorHabitacion.buscandoHabitacion);
 
-// only admins can create rooms
-rutas.post("/registrarhabitacion", verificarToken, verificarAdmin, controladorHabitacion.registrandoHabitacion);
+// permitir registrar habitaciones sin autenticación
+rutas.post("/registrarhabitacion", controladorHabitacion.registrandoHabitacion);
 
 rutas.put("/editandohabitacion/:idhabitacion",controladorHabitacion.editandoHabitacion);
 
