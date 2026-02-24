@@ -45,9 +45,11 @@ export class ControladorHabitaciones {
         foto
       };
 
-      await objetoServicioHabitacion.registrar(datosNormalizados);
+      const resultadoRegistro = await objetoServicioHabitacion.registrar(datosNormalizados);
+      const habitacionCompleta = await objetoServicioHabitacion.buscarPorId(resultadoRegistro.id);
       return respuesta.status(201).json({
-        mensaje: 'Habitación registrada correctamente.'
+        mensaje: 'Habitación registrada correctamente.',
+        habitacion: habitacionCompleta
       });
       
     } catch (error) {

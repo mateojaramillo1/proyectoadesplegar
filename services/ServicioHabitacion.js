@@ -16,12 +16,21 @@ export class ServicioHabitacion {
 
   async buscarTodas() {
     const [rows] = await pool.execute('SELECT * FROM habitaciones');
-    return rows;
+    // Mapear para devolver 'foto' como arreglo
+    return rows.map(hab => ({
+      ...hab,
+      foto: hab.imagen ? [hab.imagen] : [],
+    }));
   }
 
   async buscarPorId(idHabitacion) {
     const [rows] = await pool.execute('SELECT * FROM habitaciones WHERE id = ?', [idHabitacion]);
-    return rows[0];
+    if (!rows[0]) return undefined;
+    const hab = rows[0];
+    return {
+      ...hab,
+      foto: hab.imagen ? [hab.imagen] : [],
+    };
   }
 
   async editar(idHabitacion, datosHabitacion) {
