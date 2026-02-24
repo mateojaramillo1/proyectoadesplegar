@@ -22,13 +22,14 @@ export async function establecerConexion(){
             throw new Error('La variable DATABASE no está configurada')
         }
 
+
         mongoose.set('bufferCommands', false)
-        mongoose.set('bufferTimeoutMS', 3000)
+        mongoose.set('bufferTimeoutMS', 20000)
 
         promesaConexion = mongoose.connect(process.env.DATABASE, {
-            serverSelectionTimeoutMS: 5000,
-            connectTimeoutMS: 5000,
-            socketTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 20000,
+            connectTimeoutMS: 20000,
+            socketTimeoutMS: 20000,
             maxPoolSize: 10
         })
 
