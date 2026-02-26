@@ -6,7 +6,7 @@ let promesaConexion = null;
 export async function establecerConexion(){
     try{
         console.log('Intentando conectar a la base de datos...');
-        console.log('process.env.DATABASE:', process.env.DATABASE);
+        console.log('DATABASE configurada:', !!process.env.DATABASE);
         if (conexionActiva && mongoose.connection.readyState === 1) {
             console.log('Ya existe una conexión activa.');
             return conexionActiva;

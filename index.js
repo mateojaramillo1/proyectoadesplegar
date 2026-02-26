@@ -59,16 +59,28 @@ app.use((req, res, next) => {
 
   return next();
 });
-// Conectar a la base de datos MongoDB Atlas
-establecerConexion().catch(err => {
-  console.error('No se pudo conectar a la base de datos:', err);
-});
 const PORT = process.env.PORT || 3003;
 
 // middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
+
+app.use(async (req, res, next) => {
+  if (req.path === '/' || req.path === '/health') {
+    return next();
+  }
+
+  try {
+    await establecerConexion();
+    return next();
+  } catch (error) {
+    console.error('No se pudo conectar a la base de datos:', error.message);
+    return res.status(500).json({
+      mensaje: 'No fue posible conectar con la base de datos.'
+    });
+  }
+});
 
 // rutas
 app.get('/', (req, res) => res.json({ mensaje: 'API activa' }));
