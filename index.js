@@ -33,10 +33,35 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const isAllowedOrigin =
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+
+  if (origin && isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+  }
+
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header(
+    'Access-Control-Allow-Headers',
+    req.headers['access-control-request-headers'] || 'Content-Type,Authorization'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
 // Conectar a la base de datos MongoDB Atlas
 establecerConexion().catch(err => {
   console.error('No se pudo conectar a la base de datos:', err);
-  process.exit(1);
 });
 const PORT = process.env.PORT || 3003;
 
