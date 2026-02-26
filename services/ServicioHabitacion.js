@@ -1,45 +1,43 @@
 
-import { pool } from '../database/mysql.js';
+import { modeloHabitacion } from '../models/modeloHabitacion.js';
 
 export class ServicioHabitacion {
   constructor() {}
 
   async registrar(datosHabitacion) {
+    // Normalizar datos
     const { nombre, descripcion, precio, numeropersonas, foto } = datosHabitacion;
-    const imagen = Array.isArray(foto) ? foto[0] : (foto || '');
-    const [result] = await pool.execute(
-      'INSERT INTO habitaciones (nombre, descripcion, precio, capacidad, imagen) VALUES (?, ?, ?, ?, ?)',
-      [nombre, descripcion, precio, numeropersonas, imagen]
-    );
-    return { id: result.insertId, ...datosHabitacion };
+    const habitacion = new modeloHabitacion({
+      nombre,
+      descripcion,
+      precio,
+      numeropersonas,
+      foto: Array.isArray(foto) ? foto : (foto ? [foto] : [])
+    });
+    const doc = await habitacion.save();
+    return doc;
   }
 
   async buscarTodas() {
-    const [rows] = await pool.execute('SELECT * FROM habitaciones');
-    // Mapear para devolver 'foto' como arreglo
-    return rows.map(hab => ({
-      ...hab,
-      foto: hab.imagen ? [hab.imagen] : [],
-    }));
+    const habitaciones = await modeloHabitacion.find();
+    return habitaciones;
   }
 
   async buscarPorId(idHabitacion) {
-    const [rows] = await pool.execute('SELECT * FROM habitaciones WHERE id = ?', [idHabitacion]);
-    if (!rows[0]) return undefined;
-    const hab = rows[0];
-    return {
-      ...hab,
-      foto: hab.imagen ? [hab.imagen] : [],
-    };
+    const hab = await modeloHabitacion.findById(idHabitacion);
+    return hab;
   }
 
   async editar(idHabitacion, datosHabitacion) {
     const { nombre, descripcion, precio, numeropersonas, foto } = datosHabitacion;
-    const imagen = Array.isArray(foto) ? foto[0] : (foto || '');
-    await pool.execute(
-      'UPDATE habitaciones SET nombre=?, descripcion=?, precio=?, capacidad=?, imagen=? WHERE id=?',
-      [nombre, descripcion, precio, numeropersonas, imagen, idHabitacion]
-    );
-    return { id: idHabitacion, ...datosHabitacion };
+    const update = {
+      nombre,
+      descripcion,
+      precio,
+      numeropersonas,
+      foto: Array.isArray(foto) ? foto : (foto ? [foto] : [])
+    };
+    const hab = await modeloHabitacion.findByIdAndUpdate(idHabitacion, update, { new: true });
+    return hab;
   }
 }

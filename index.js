@@ -2,10 +2,15 @@ import express from "express";
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import { rutas } from "./routes/rutas.js";
-
+import { establecerConexion } from "./database/conexion.js";
 dotenv.config();
 
 const app = express();
+// Conectar a la base de datos MongoDB Atlas
+establecerConexion().catch(err => {
+  console.error('No se pudo conectar a la base de datos:', err);
+  process.exit(1);
+});
 const PORT = process.env.PORT || 3003;
 
 // middleware
