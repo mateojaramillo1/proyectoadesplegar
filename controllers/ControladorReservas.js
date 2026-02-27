@@ -42,9 +42,11 @@ export class ControladorReservas {
         return respuesta.status(400).json({ mensaje: errorValidacion });
       }
 
-      await objetoServicioReserva.registrar(datosReserva);
+      // Guardar y devolver la reserva creada
+      const reservaCreada = await objetoServicioReserva.registrar(datosReserva);
       return respuesta.status(200).json({
         mensaje: "exito agregando datos reserva",
+        reserva: reservaCreada
       });
 
     } catch (error) {
