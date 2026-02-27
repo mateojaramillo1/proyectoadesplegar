@@ -27,6 +27,8 @@ rutas.get("/buscarreserva/:idreserva",controladorReservas.buscandoReserva);
 
 // reservations require authentication so they are linked to the user
 rutas.post("/registrarreserva", verificarToken, controladorReservas.registrandoReservas);
+rutas.post('/reservas/iniciar-pago-pse', verificarToken, controladorReservas.iniciandoPagoPse);
+rutas.post('/webhooks/wompi', controladorReservas.webhookWompi);
 
 // authentication
 rutas.post('/auth/register', controladorAuth.registrarUsuario);
