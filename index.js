@@ -3,7 +3,8 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import { rutas } from "./routes/rutas.js";
 import { establecerConexion } from "./database/conexion.js";
-dotenv.config();
+dotenv.config({ path: '.env' });
+dotenv.config({ path: '.env.local', override: true });
 
 const app = express();
 const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://angularproyect-topaz.vercel.app';

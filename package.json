@@ -6,7 +6,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "docker:db:up": "docker compose up -d mongo",
+    "docker:db:down": "docker compose down",
+    "docker:db:logs": "docker compose logs -f mongo"
   },
   "keywords": [],
   "author": "",
