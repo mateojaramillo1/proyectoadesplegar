@@ -186,6 +186,53 @@ export class ControladorReservas {
     }
   }
 
+  async consultandoEstadoPagoWompi(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+    const servicioPagoWompi = new ServicioPagoWompi();
+
+    try {
+      const transactionId = peticion.params.transactionId;
+      if (!transactionId) {
+        return respuesta.status(400).json({ mensaje: 'transactionId es requerido' });
+      }
+
+      const transaccion = await servicioPagoWompi.consultarTransaccion(transactionId);
+      const referenciaPago = transaccion?.reference;
+      const estados = servicioPagoWompi.mapearEstadoPago(transaccion?.status);
+
+      let reservaActualizada = null;
+      if (referenciaPago) {
+        reservaActualizada = await objetoServicioReserva.actualizarPorReferenciaPago(referenciaPago, {
+          ...estados,
+          wompiTransactionId: String(transactionId)
+        });
+      }
+
+      return respuesta.status(200).json({
+        mensaje: 'Estado de pago consultado correctamente',
+        transaccion: {
+          id: transaccion?.id || String(transactionId),
+          status: transaccion?.status || 'PENDING',
+          reference: referenciaPago || null,
+          amount_in_cents: transaccion?.amount_in_cents || 0,
+          currency: transaccion?.currency || 'COP'
+        },
+        reserva: reservaActualizada
+          ? {
+              id: reservaActualizada._id,
+              referenciaPago: reservaActualizada.referenciaPago,
+              estadoPago: reservaActualizada.estadoPago,
+              estadoReserva: reservaActualizada.estadoReserva,
+              montoTotal: reservaActualizada.montoTotal,
+              moneda: reservaActualizada.moneda
+            }
+          : null
+      });
+    } catch (error) {
+      return respuesta.status(500).json({ mensaje: 'Error consultando estado de pago: ' + error.message });
+    }
+  }
+
   async buscandoReserva(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
