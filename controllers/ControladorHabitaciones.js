@@ -17,6 +17,11 @@ export class ControladorHabitaciones {
         : typeof datosHabitacion?.foto === 'string' && datosHabitacion.foto.trim().length > 0
           ? [datosHabitacion.foto.trim()]
           : [];
+      const servicios = Array.isArray(datosHabitacion?.servicios)
+        ? datosHabitacion.servicios
+            .map((item) => String(item).trim())
+            .filter((item) => item.length > 0)
+        : [];
 
       if (!nombre || !descripcion || foto.length === 0 || Number.isNaN(precio) || Number.isNaN(numeropersonas)) {
         return respuesta.status(400).json({
@@ -36,13 +41,20 @@ export class ControladorHabitaciones {
         });
       }
 
+      if (servicios.length === 0) {
+        return respuesta.status(400).json({
+          mensaje: 'Selecciona al menos un servicio para la habitación.'
+        });
+      }
+
       const datosNormalizados = {
         ...datosHabitacion,
         nombre,
         descripcion,
         precio,
         numeropersonas,
-        foto
+        foto,
+        servicios
       };
 
       const resultadoRegistro = await objetoServicioHabitacion.registrar(datosNormalizados);

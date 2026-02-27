@@ -6,13 +6,14 @@ export class ServicioHabitacion {
 
   async registrar(datosHabitacion) {
     // Normalizar datos
-    const { nombre, descripcion, precio, numeropersonas, foto } = datosHabitacion;
+    const { nombre, descripcion, precio, numeropersonas, foto, servicios } = datosHabitacion;
     const habitacion = new modeloHabitacion({
       nombre,
       descripcion,
       precio,
       numeropersonas,
-      foto: Array.isArray(foto) ? foto : (foto ? [foto] : [])
+      foto: Array.isArray(foto) ? foto : (foto ? [foto] : []),
+      servicios: Array.isArray(servicios) ? servicios : []
     });
     const doc = await habitacion.save();
     return doc;
@@ -29,13 +30,14 @@ export class ServicioHabitacion {
   }
 
   async editar(idHabitacion, datosHabitacion) {
-    const { nombre, descripcion, precio, numeropersonas, foto } = datosHabitacion;
+    const { nombre, descripcion, precio, numeropersonas, foto, servicios } = datosHabitacion;
     const update = {
       nombre,
       descripcion,
       precio,
       numeropersonas,
-      foto: Array.isArray(foto) ? foto : (foto ? [foto] : [])
+      foto: Array.isArray(foto) ? foto : (foto ? [foto] : []),
+      servicios: Array.isArray(servicios) ? servicios : []
     };
     const hab = await modeloHabitacion.findByIdAndUpdate(idHabitacion, update, { new: true });
     return hab;
