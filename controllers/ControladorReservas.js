@@ -114,4 +114,24 @@ export class ControladorReservas {
       });
     }
   }
+
+  // Cambiar estado de reserva (solo admin)
+  async cambiarEstadoReserva(peticion, respuesta) {
+    let objetoServicioReserva = new ServicioReserva();
+    try {
+      // Solo admin puede cambiar estado
+      if (!peticion.usuario || !peticion.usuario.esAdmin) {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+      let idReserva = peticion.params.idreserva;
+      let { estado } = peticion.body;
+      if (!['pendiente', 'aprobada', 'rechazada'].includes(estado)) {
+        return respuesta.status(400).json({ mensaje: 'Estado inválido' });
+      }
+      await objetoServicioReserva.editar(idReserva, { estado });
+      respuesta.status(200).json({ mensaje: 'Estado actualizado' });
+    } catch (error) {
+      respuesta.status(400).json({ mensje: 'fallamos en la operacion ' + error });
+    }
+  }
 }

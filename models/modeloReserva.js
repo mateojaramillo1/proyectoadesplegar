@@ -45,6 +45,12 @@ const Reserva = new Schema({
         ref: 'usuarios',
         required: false
     }
+    ,
+    estado: {
+        type: String,
+        enum: ['pendiente', 'aprobada', 'rechazada'],
+        default: 'pendiente'
+    }
 
 })
 
