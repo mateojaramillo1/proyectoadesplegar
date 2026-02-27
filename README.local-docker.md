@@ -49,24 +49,3 @@ docker compose down -v
 ```
 
 - Esta integración no cambia el funcionamiento remoto mientras mantengas la URI remota en variables de producción.
-
-## Integración de pago PSE (Wompi)
-
-Se agregaron estos endpoints en el backend:
-
-- `POST /reservas/iniciar-pago-pse` (requiere `Authorization: Bearer <token>`)
-- `POST /webhooks/wompi` (sin token, para notificaciones de Wompi)
-
-Flujo:
-
-1. El frontend envía los datos de reserva a `/reservas/iniciar-pago-pse`.
-2. El backend crea la reserva en estado `PENDIENTE_PAGO` y genera un link de pago en Wompi.
-3. El frontend redirige al usuario a `checkoutUrl`.
-4. Wompi notifica a `/webhooks/wompi` y el backend actualiza la reserva a `CONFIRMADA` cuando el estado es `APPROVED`.
-
-Variables requeridas en producción (Vercel):
-
-- `WOMPI_PUBLIC_KEY`
-- `WOMPI_PRIVATE_KEY`
-- `WOMPI_REDIRECT_URL`
-- `WOMPI_API_BASE` (por defecto `https://production.wompi.co/v1`)

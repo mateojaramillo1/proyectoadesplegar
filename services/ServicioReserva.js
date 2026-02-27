@@ -21,16 +21,4 @@ export class ServicioReserva {
     let eliminarReserva = await modeloReserva.findByIdAndDelete(idReserva)
     return eliminarReserva
   }
-
-  async buscarPorReferenciaPago(referenciaPago) {
-    return await modeloReserva.findOne({ referenciaPago });
-  }
-
-  async actualizarPorReferenciaPago(referenciaPago, datosActualizacion) {
-    return await modeloReserva.findOneAndUpdate(
-      { referenciaPago },
-      datosActualizacion,
-      { new: true }
-    );
-  }
 }

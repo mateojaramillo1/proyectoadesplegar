@@ -44,40 +44,8 @@ const Reserva = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'usuarios',
         required: false
-    },
-    estadoPago: {
-        type: String,
-        enum: ['PENDIENTE', 'PAGADA', 'FALLIDA'],
-        default: 'PENDIENTE'
-    },
-    estadoReserva: {
-        type: String,
-        enum: ['PENDIENTE_PAGO', 'CONFIRMADA', 'CANCELADA'],
-        default: 'PENDIENTE_PAGO'
-    },
-    montoTotal: {
-        type: Number,
-        required: false,
-        default: 0
-    },
-    moneda: {
-        type: String,
-        default: 'COP'
-    },
-    referenciaPago: {
-        type: String,
-        unique: true,
-        sparse: true
-    },
-    wompiTransactionId: {
-        type: String,
-        required: false
-    },
-    wompiPaymentLink: {
-        type: String,
-        required: false
     }
 
-}, { timestamps: true })
+})
 
 export const modeloReserva=mongoose.model('reservas',Reserva)
