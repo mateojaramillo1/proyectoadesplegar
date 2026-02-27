@@ -36,3 +36,6 @@ rutas.post('/auth/login', controladorAuth.login);
 rutas.put("/editandoreserva/:idreserva",controladorReservas.editandoReserva);
 
 rutas.delete("/eliminandoreserva/:idreserva",controladorReservas.eliminandoReserva);
+
+// Cambiar estado de reserva (solo admin)
+rutas.put('/cambiar-estado-reserva/:idreserva', verificarToken, verificarAdmin, controladorReservas.cambiarEstadoReserva);
