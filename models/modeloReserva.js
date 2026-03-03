@@ -50,6 +50,11 @@ const Reserva = new Schema({
         type: String,
         enum: ['pendiente', 'aprobada', 'rechazada'],
         default: 'pendiente'
+    },
+    metodoPago: {
+        type: String,
+        enum: ['efectivo', 'transferencia'],
+        default: 'efectivo'
     }
 
 })
