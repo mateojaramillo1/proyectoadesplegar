@@ -121,8 +121,8 @@ export class ControladorReservas {
   async cambiarEstadoReserva(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
-      // Solo admin puede cambiar estado
-      if (!peticion.usuario || !peticion.usuario.esAdmin) {
+      // Solo admin puede cambiar estado (ya validado por middleware, pero doble check)
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
         return respuesta.status(403).json({ mensaje: 'No autorizado' });
       }
       let idReserva = peticion.params.idreserva;
@@ -141,7 +141,7 @@ export class ControladorReservas {
   async verificarPago(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
-      if (!peticion.usuario || !peticion.usuario.esAdmin) {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
         return respuesta.status(403).json({ mensaje: 'No autorizado' });
       }
       let idReserva = peticion.params.idreserva;
