@@ -42,10 +42,32 @@ export class ControladorReservas {
         return respuesta.status(400).json({ mensaje: errorValidacion });
       }
 
+      // Verificar disponibilidad de la habitación para las fechas solicitadas
+      const disponibilidad = await objetoServicioReserva.verificarDisponibilidad(
+        datosReserva.idHabitacion,
+        datosReserva.fechainicio,
+        datosReserva.fechafin
+      );
+
+      if (!disponibilidad.disponible) {
+        return respuesta.status(409).json({
+          mensaje: 'La habitación no está disponible para las fechas seleccionadas. Ya existe una reserva pendiente o aprobada para esas fechas.',
+          conflicto: true,
+          fechasOcupadas: disponibilidad.reservasConflicto.map(r => ({
+            fechainicio: r.fechainicio,
+            fechafin: r.fechafin
+          }))
+        });
+      }
+
+      // Nueva reserva siempre empieza como pendiente
+      datosReserva.estado = 'pendiente';
+      datosReserva.pagoVerificado = false;
+
       // Guardar y devolver la reserva creada
       const reservaCreada = await objetoServicioReserva.registrar(datosReserva);
       return respuesta.status(200).json({
-        mensaje: "exito agregando datos reserva",
+        mensaje: "Reserva creada exitosamente. Su reserva está pendiente de aprobación hasta que se verifique el pago.",
         reserva: reservaCreada
       });
 
@@ -150,6 +172,56 @@ export class ControladorReservas {
       respuesta.status(200).json({ mensaje: 'Pago actualizado' });
     } catch (error) {
       respuesta.status(400).json({ mensaje: 'fallamos en la operacion ' + error });
+    }
+  }
+
+  // Obtener reservas del usuario actual
+  async misReservas(peticion, respuesta) {
+    let objetoServicioReserva = new ServicioReserva();
+    try {
+      if (!peticion.usuario || !peticion.usuario.id) {
+        return respuesta.status(401).json({ mensaje: 'Debe iniciar sesión para ver sus reservas' });
+      }
+      const reservas = await objetoServicioReserva.buscarPorUsuario(peticion.usuario.id);
+      respuesta.status(200).json({
+        mensaje: 'Reservas encontradas',
+        reservas: reservas
+      });
+    } catch (error) {
+      respuesta.status(400).json({ mensaje: 'Error obteniendo reservas: ' + error });
+    }
+  }
+
+  // Verificar disponibilidad de habitación
+  async verificarDisponibilidad(peticion, respuesta) {
+    let objetoServicioReserva = new ServicioReserva();
+    try {
+      const { idHabitacion, fechainicio, fechafin } = peticion.body;
+      
+      if (!idHabitacion || !fechainicio || !fechafin) {
+        return respuesta.status(400).json({ 
+          mensaje: 'Se requiere idHabitacion, fechainicio y fechafin' 
+        });
+      }
+
+      const disponibilidad = await objetoServicioReserva.verificarDisponibilidad(
+        idHabitacion,
+        fechainicio,
+        fechafin
+      );
+
+      respuesta.status(200).json({
+        disponible: disponibilidad.disponible,
+        mensaje: disponibilidad.disponible 
+          ? 'La habitación está disponible para las fechas seleccionadas'
+          : 'La habitación no está disponible para las fechas seleccionadas',
+        fechasOcupadas: disponibilidad.disponible ? [] : disponibilidad.reservasConflicto.map(r => ({
+          fechainicio: r.fechainicio,
+          fechafin: r.fechafin
+        }))
+      });
+    } catch (error) {
+      respuesta.status(400).json({ mensaje: 'Error verificando disponibilidad: ' + error });
     }
   }
 }

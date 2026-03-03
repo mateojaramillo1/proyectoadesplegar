@@ -42,3 +42,9 @@ rutas.put('/cambiar-estado-reserva/:idreserva', verificarToken, verificarAdmin, 
 
 // Verificar pago de reserva (solo admin)
 rutas.put('/verificar-pago/:idreserva', verificarToken, verificarAdmin, controladorReservas.verificarPago);
+
+// Obtener reservas del usuario actual
+rutas.get('/mis-reservas', verificarToken, controladorReservas.misReservas);
+
+// Verificar disponibilidad de habitación (público, pero útil antes de reservar)
+rutas.post('/verificar-disponibilidad', controladorReservas.verificarDisponibilidad);
