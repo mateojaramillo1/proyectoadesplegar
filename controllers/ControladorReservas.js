@@ -136,4 +136,20 @@ export class ControladorReservas {
       respuesta.status(400).json({ mensje: 'fallamos en la operacion ' + error });
     }
   }
+
+  // Verificar pago de reserva (solo admin)
+  async verificarPago(peticion, respuesta) {
+    let objetoServicioReserva = new ServicioReserva();
+    try {
+      if (!peticion.usuario || !peticion.usuario.esAdmin) {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+      let idReserva = peticion.params.idreserva;
+      let { pagoVerificado } = peticion.body;
+      await objetoServicioReserva.editar(idReserva, { pagoVerificado: !!pagoVerificado });
+      respuesta.status(200).json({ mensaje: 'Pago actualizado' });
+    } catch (error) {
+      respuesta.status(400).json({ mensaje: 'fallamos en la operacion ' + error });
+    }
+  }
 }

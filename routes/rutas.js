@@ -39,3 +39,6 @@ rutas.delete("/eliminandoreserva/:idreserva",controladorReservas.eliminandoReser
 
 // Cambiar estado de reserva (solo admin)
 rutas.put('/cambiar-estado-reserva/:idreserva', verificarToken, verificarAdmin, controladorReservas.cambiarEstadoReserva);
+
+// Verificar pago de reserva (solo admin)
+rutas.put('/verificar-pago/:idreserva', verificarToken, verificarAdmin, controladorReservas.verificarPago);

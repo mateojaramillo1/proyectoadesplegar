@@ -55,6 +55,10 @@ const Reserva = new Schema({
         type: String,
         enum: ['efectivo', 'transferencia'],
         default: 'efectivo'
+    },
+    pagoVerificado: {
+        type: Boolean,
+        default: false
     }
 
 })
