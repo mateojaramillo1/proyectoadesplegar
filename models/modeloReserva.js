@@ -59,6 +59,14 @@ const Reserva = new Schema({
     pagoVerificado: {
         type: Boolean,
         default: false
+    },
+    precioTotal: {
+        type: Number,
+        default: 0
+    },
+    noches: {
+        type: Number,
+        default: 1
     }
 
 })
