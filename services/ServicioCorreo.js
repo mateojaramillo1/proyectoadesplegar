@@ -36,9 +36,20 @@ export class ServicioCorreo {
   }
 
   async enviarCorreoReserva(datosUsuario, datosReserva, correosAdmin = []) {
+    console.log('🔵 [ServicioCorreo] Iniciando enviarCorreoReserva');
+    console.log('🔵 Datos usuario:', JSON.stringify(datosUsuario, null, 2));
+    console.log('🔵 Correos admin:', correosAdmin);
+    
     try {
       const { nombre, apellido, correo, telefono } = datosUsuario;
       const { idReserva, habitacion, fechainicio, fechafin, noches, precioTotal, metodoPago } = datosReserva;
+
+      console.log('🔵 Correo del usuario destinatario:', correo);
+      
+      if (!correo) {
+        console.error('❌ No hay correo de usuario, abortando');
+        return false;
+      }
 
       // Formatear fechas
       const fechaInicio = new Date(fechainicio).toLocaleDateString('es-CO', {
@@ -157,6 +168,10 @@ export class ServicioCorreo {
         </html>
       `;
 
+      console.log('🔵 [ServicioCorreo] Intentando enviar correo al usuario...');
+      console.log('🔵 De:', `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_USER}>`);
+      console.log('🔵 Para:', correo);
+      
       await this.transporter.sendMail({
         from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_USER}>`,
         to: correo,
@@ -164,7 +179,7 @@ export class ServicioCorreo {
         html: htmlUsuario
       });
 
-      console.log(`✅ Correo enviado al usuario: ${correo}`);
+      console.log(`✅✅✅ Correo enviado al usuario: ${correo}`);
 
       // Correo al admin
       const asuntoAdmin = `[NUEVA RESERVA] ${nombre} ${apellido} - Paradisus Cancún`;
@@ -267,18 +282,22 @@ export class ServicioCorreo {
       `;
 
       // Enviar a todos los admins registrados
+      console.log('🔵 [ServicioCorreo] Enviando correos a admins...');
+      console.log('🔵 Total de admins:', correosAdmin.length);
+      
       if (correosAdmin && correosAdmin.length > 0) {
         for (const correoAdmin of correosAdmin) {
           try {
+            console.log(`🔵 Enviando a admin: ${correoAdmin}`);
             await this.transporter.sendMail({
               from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_USER}>`,
               to: correoAdmin,
               subject: asuntoAdmin,
               html: htmlAdmin
             });
-            console.log(`✅ Correo de notificación enviado al admin: ${correoAdmin}`);
+            console.log(`✅✅✅ Correo de notificación enviado al admin: ${correoAdmin}`);
           } catch (errorAdmin) {
-            console.error(`❌ Error enviando correo al admin ${correoAdmin}:`, errorAdmin);
+            console.error(`❌❌❌ Error enviando correo al admin ${correoAdmin}:`, errorAdmin.message);
           }
         }
       } else {

@@ -120,21 +120,33 @@ export class ControladorReservas {
       const admins = await servicioUsuarioCorreo.obtenerTodosLosAdmins();
       const correosAdmin = admins.map(admin => admin.email).filter(email => email);
       
-      console.log(`📧 Enviando correos: usuario=${datosUsuario.correo}, admins=${correosAdmin.length}`);
+      console.log('═══════════════════════════════════════════════════');
+      console.log('📧 INTENTO DE ENVÍO DE CORREOS');
+      console.log('Usuario destino:', datosUsuario.correo);
+      console.log('Nombre usuario:', datosUsuario.nombre, datosUsuario.apellido);
+      console.log('Admins encontrados:', correosAdmin.length);
+      console.log('Correos admins:', correosAdmin);
+      console.log('EMAIL_USER configurado:', process.env.EMAIL_USER ? 'SÍ' : 'NO');
+      console.log('EMAIL_PASSWORD configurado:', process.env.EMAIL_PASSWORD ? 'SÍ' : 'NO');
+      console.log('═══════════════════════════════════════════════════');
       
       // Enviar correos de forma asincrónica (no esperar respuesta)
       if (datosUsuario.correo) {
         servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo, correosAdmin)
           .then(resultado => {
             if (resultado) {
-              console.log('✅ Correos enviados exitosamente');
+              console.log('✅✅✅ CORREOS ENVIADOS EXITOSAMENTE ✅✅✅');
             } else {
-              console.warn('⚠️ Hubo un problema enviando los correos, pero la reserva se creó');
+              console.warn('⚠️⚠️⚠️ PROBLEMA ENVIANDO CORREOS ⚠️⚠️⚠️');
             }
           })
           .catch(err => {
-            console.error('❌ Error al enviar correos:', err.message);
+            console.error('❌❌❌ ERROR AL ENVIAR CORREOS ❌❌❌');
+            console.error('Mensaje:', err.message);
+            console.error('Stack:', err.stack);
           });
+      } else {
+        console.error('❌ No se puede enviar correo: usuario sin email');
       }
       
       return respuesta.status(200).json({
