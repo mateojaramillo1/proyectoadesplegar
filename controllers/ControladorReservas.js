@@ -1,5 +1,7 @@
 import { ServicioReserva } from "../services/ServicioReserva.js";
 import { ServicioUsuario } from "../services/ServicioUsuario.js";
+import { ServicioCorreo } from "../services/ServicioCorreo.js";
+import { ServicioHabitacion } from "../services/ServicioHabitacion.js";
 
 function validarDatosReserva(datosReserva) {
   if (datosReserva.fechainicio > datosReserva.fechafin) {
@@ -66,6 +68,40 @@ export class ControladorReservas {
 
       // Guardar y devolver la reserva creada
       const reservaCreada = await objetoServicioReserva.registrar(datosReserva);
+      
+      // Enviar correos al usuario y al admin
+      const servicioCorreo = new ServicioCorreo();
+      const servicioHabitacion = new ServicioHabitacion();
+      
+      // Obtener datos de la habitación
+      const habitacion = await servicioHabitacion.buscarPorId(datosReserva.idHabitacion);
+      const nombreHabitacion = habitacion?.nombre || 'Habitación';
+      
+      // Preparar datos para los correos
+      const datosParaCorreo = {
+        idReserva: reservaCreada._id,
+        habitacion: nombreHabitacion,
+        fechainicio: datosReserva.fechainicio,
+        fechafin: datosReserva.fechafin,
+        noches: datosReserva.noches || 1,
+        precioTotal: datosReserva.precioTotal || 0,
+        metodoPago: datosReserva.metodoPago
+      };
+      
+      const datosUsuario = {
+        nombre: datosReserva.nombre,
+        apellido: datosReserva.apellido,
+        correo: usuario?.correo || usuario?.email || '',
+        telefono: datosReserva.telefono
+      };
+      
+      // Enviar correos de forma asincrónica (no esperar respuesta)
+      if (datosUsuario.correo) {
+        servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo).catch(err => 
+          console.error('Error al enviar correos:', err)
+        );
+      }
+      
       return respuesta.status(200).json({
         mensaje: "Reserva creada exitosamente. Su reserva está pendiente de aprobación hasta que se verifique el pago.",
         reserva: reservaCreada
@@ -152,7 +188,43 @@ export class ControladorReservas {
       if (!['pendiente', 'aprobada', 'rechazada'].includes(estado)) {
         return respuesta.status(400).json({ mensaje: 'Estado inválido' });
       }
+      
+      // Obtener la reserva antes de actualizar
+      const reserva = await objetoServicioReserva.buscarPorId(idReserva);
+      
       await objetoServicioReserva.editar(idReserva, { estado });
+      
+      // Si se aprueba, enviar correo al usuario
+      if (estado === 'aprobada' && reserva && reserva.usuario) {
+        const servicioCorreo = new ServicioCorreo();
+        const servicioUsuario = new ServicioUsuario();
+        const servicioHabitacion = new ServicioHabitacion();
+        
+        try {
+          const usuario = await servicioUsuario.buscarPorId(reserva.usuario);
+          const habitacion = await servicioHabitacion.buscarPorId(reserva.idHabitacion);
+          
+          if (usuario && usuario.correo) {
+            const datosParaCorreo = {
+              idReserva: reserva._id,
+              habitacion: habitacion?.nombre || 'Habitación',
+              fechainicio: reserva.fechainicio,
+              fechafin: reserva.fechafin
+            };
+            
+            const datosUsuario = {
+              nombre: usuario.nombre,
+              apellido: usuario.apellido,
+              correo: usuario.correo
+            };
+            
+            await servicioCorreo.enviarCorreoAprobacion(datosUsuario, datosParaCorreo);
+          }
+        } catch (errorCorreo) {
+          console.error('Error al enviar correo de aprobación:', errorCorreo);
+        }
+      }
+      
       respuesta.status(200).json({ mensaje: 'Estado actualizado' });
     } catch (error) {
       respuesta.status(400).json({ mensje: 'fallamos en la operacion ' + error });
