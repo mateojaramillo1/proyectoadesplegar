@@ -224,7 +224,13 @@ export class ControladorReservas {
       // Obtener la reserva antes de actualizar
       const reserva = await objetoServicioReserva.buscarPorId(idReserva);
       
-      await objetoServicioReserva.editar(idReserva, { estado });
+      // Si se aprueba, marcar pago como verificado
+      const datosActualizar = { estado };
+      if (estado === 'aprobada') {
+        datosActualizar.pagoVerificado = true;
+      }
+      
+      await objetoServicioReserva.editar(idReserva, datosActualizar);
       
       // Si se aprueba, enviar correo al usuario
       if (estado === 'aprobada' && reserva && reserva.usuario) {
