@@ -15,7 +15,7 @@ export class ServicioCorreo {
     });
   }
 
-  async enviarCorreoReserva(datosUsuario, datosReserva) {
+  async enviarCorreoReserva(datosUsuario, datosReserva, correosAdmin = []) {
     try {
       const { nombre, apellido, correo, telefono } = datosUsuario;
       const { idReserva, habitacion, fechainicio, fechafin, noches, precioTotal, metodoPago } = datosReserva;
@@ -246,14 +246,25 @@ export class ServicioCorreo {
         </html>
       `;
 
-      await this.transporter.sendMail({
-        from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_ADMIN,
-        subject: asuntoAdmin,
-        html: htmlAdmin
-      });
-
-      console.log(`✅ Correo de notificación enviado al admin: ${process.env.EMAIL_ADMIN}`);
+      // Enviar a todos los admins registrados
+      if (correosAdmin && correosAdmin.length > 0) {
+        for (const correoAdmin of correosAdmin) {
+          try {
+            await this.transporter.sendMail({
+              from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_USER}>`,
+              to: correoAdmin,
+              subject: asuntoAdmin,
+              html: htmlAdmin
+            });
+            console.log(`✅ Correo de notificación enviado al admin: ${correoAdmin}`);
+          } catch (errorAdmin) {
+            console.error(`❌ Error enviando correo al admin ${correoAdmin}:`, errorAdmin);
+          }
+        }
+      } else {
+        console.warn('⚠️ No hay administradores registrados para notificar');
+      }
+      
       return true;
     } catch (error) {
       console.error('❌ Error enviando correos:', error);

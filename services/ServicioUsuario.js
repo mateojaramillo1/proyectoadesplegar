@@ -52,4 +52,9 @@ export class ServicioUsuario {
     const usuario = await modeloUsuario.findOne({ email: String(email).toLowerCase().trim() });
     return this.normalizarUsuario(usuario);
   }
+
+  async obtenerTodosLosAdmins() {
+    const admins = await modeloUsuario.find({ rol: 'admin' });
+    return admins.map(admin => this.normalizarUsuario(admin));
+  }
 }

@@ -91,13 +91,18 @@ export class ControladorReservas {
       const datosUsuario = {
         nombre: datosReserva.nombre,
         apellido: datosReserva.apellido,
-        correo: usuario?.correo || usuario?.email || '',
+        correo: usuario?.email || '',
         telefono: datosReserva.telefono
       };
       
+      // Obtener correos de todos los administradores registrados en el sistema
+      const servicioUsuarioCorreo = new ServicioUsuario();
+      const admins = await servicioUsuarioCorreo.obtenerTodosLosAdmins();
+      const correosAdmin = admins.map(admin => admin.email).filter(email => email);
+      
       // Enviar correos de forma asincrónica (no esperar respuesta)
       if (datosUsuario.correo) {
-        servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo).catch(err => 
+        servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo, correosAdmin).catch(err => 
           console.error('Error al enviar correos:', err)
         );
       }
@@ -204,7 +209,7 @@ export class ControladorReservas {
           const usuario = await servicioUsuario.buscarPorId(reserva.usuario);
           const habitacion = await servicioHabitacion.buscarPorId(reserva.idHabitacion);
           
-          if (usuario && usuario.correo) {
+          if (usuario && usuario.email) {
             const datosParaCorreo = {
               idReserva: reserva._id,
               habitacion: habitacion?.nombre || 'Habitación',
@@ -215,7 +220,7 @@ export class ControladorReservas {
             const datosUsuario = {
               nombre: usuario.nombre,
               apellido: usuario.apellido,
-              correo: usuario.correo
+              correo: usuario.email
             };
             
             await servicioCorreo.enviarCorreoAprobacion(datosUsuario, datosParaCorreo);

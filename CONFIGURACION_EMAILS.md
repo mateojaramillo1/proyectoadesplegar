@@ -2,6 +2,20 @@
 
 Este proyecto utiliza **NodeMailer** con Gmail para enviar correos de confirmación de reservas.
 
+## Características
+
+✅ **Correos automáticos al crear reserva:**
+- Correo al usuario con detalles de su reserva
+- Correos a TODOS los administradores registrados en el sistema
+
+✅ **Correo de aprobación:**
+- Cuando un admin aprueba una reserva, se notifica al usuario
+
+✅ **Información del Sistema:**
+- Los correos se envían a los usuarios registrados en la base de datos
+- Los correos se envían a todos los administradores registrados en el sistema
+- Si no hay administradores registrados, se muestra un aviso en los logs
+
 ## Requisitos
 
 1. Una cuenta de Google (Gmail)
@@ -32,7 +46,6 @@ Abre el archivo `.env` en la raíz del proyecto y configura:
 # Email Configuration
 EMAIL_USER=tu_correo@gmail.com
 EMAIL_PASSWORD=contraseña_generada_sin_espacios
-EMAIL_ADMIN=admin@hotelparadisus.com
 EMAIL_FROM_NAME=Paradisus Cancún
 ```
 
@@ -40,9 +53,13 @@ EMAIL_FROM_NAME=Paradisus Cancún
 ```env
 EMAIL_USER=hotelparadisus@gmail.com
 EMAIL_PASSWORD=abcd efgh ijkl mnop
-EMAIL_ADMIN=admin@hotelparadisus.com
 EMAIL_FROM_NAME=Paradisus Cancún
 ```
+
+**Notas:**
+- El correo del usuario se obtiene automáticamente del perfil registrado en la base de datos
+- Los correos del admin se obtienen de TODOS los usuarios registrados con rol 'admin' en el sistema
+- No es necesario configurar `EMAIL_ADMIN` en variables de entorno
 
 ### 4. Instalar dependencias
 
