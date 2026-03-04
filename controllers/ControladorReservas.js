@@ -130,21 +130,27 @@ export class ControladorReservas {
       console.log('EMAIL_PASSWORD configurado:', process.env.EMAIL_PASSWORD ? 'SÍ' : 'NO');
       console.log('═══════════════════════════════════════════════════');
       
-      // Enviar correos de forma asincrónica (no esperar respuesta)
+      // En Vercel (serverless) es importante esperar esta promesa antes de responder
+      // para evitar que la función termine y cancele el envío de correo.
+      let correosEnviados = false;
       if (datosUsuario.correo) {
-        servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo, correosAdmin)
-          .then(resultado => {
-            if (resultado) {
-              console.log('✅✅✅ CORREOS ENVIADOS EXITOSAMENTE ✅✅✅');
-            } else {
-              console.warn('⚠️⚠️⚠️ PROBLEMA ENVIANDO CORREOS ⚠️⚠️⚠️');
-            }
-          })
-          .catch(err => {
-            console.error('❌❌❌ ERROR AL ENVIAR CORREOS ❌❌❌');
-            console.error('Mensaje:', err.message);
-            console.error('Stack:', err.stack);
-          });
+        try {
+          correosEnviados = await servicioCorreo.enviarCorreoReserva(
+            datosUsuario,
+            datosParaCorreo,
+            correosAdmin
+          );
+
+          if (correosEnviados) {
+            console.log('✅✅✅ CORREOS ENVIADOS EXITOSAMENTE ✅✅✅');
+          } else {
+            console.warn('⚠️⚠️⚠️ PROBLEMA ENVIANDO CORREOS ⚠️⚠️⚠️');
+          }
+        } catch (err) {
+          console.error('❌❌❌ ERROR AL ENVIAR CORREOS ❌❌❌');
+          console.error('Mensaje:', err.message);
+          console.error('Stack:', err.stack);
+        }
       } else {
         console.error('❌ No se puede enviar correo: usuario sin email');
       }
