@@ -4,12 +4,27 @@ import { ServicioCorreo } from "../services/ServicioCorreo.js";
 import { ServicioHabitacion } from "../services/ServicioHabitacion.js";
 
 function validarDatosReserva(datosReserva) {
-  if (datosReserva.fechainicio > datosReserva.fechafin) {
-    return "La fecha de ingreso debe de ser menor a la fecha de salida";
+  // Validar que las fechas estén presentes
+  if (!datosReserva.fechainicio || !datosReserva.fechafin) {
+    return "Las fechas de ingreso y salida son obligatorias";
+  }
+
+  // Convertir a Date para comparación correcta
+  const fechaInicio = new Date(datosReserva.fechainicio);
+  const fechaFin = new Date(datosReserva.fechafin);
+
+  // Validar que sean fechas válidas
+  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+    return "Las fechas deben estar en formato válido (YYYY-MM-DD)";
+  }
+
+  // Validar que la fecha de ingreso no sea mayor que la de salida
+  if (fechaInicio >= fechaFin) {
+    return "La fecha de ingreso debe ser menor a la fecha de salida";
   }
 
   if (datosReserva.numeroniños > 0 && datosReserva.numeroadultos === 0) {
-    return "no pueden ingresar niños solos, ser requiere un adulto!!";
+    return "No pueden ingresar niños solos, se requiere un adulto";
   }
 
   return null;
@@ -95,16 +110,31 @@ export class ControladorReservas {
         telefono: datosReserva.telefono
       };
       
+      // Validar que el usuario tenga correo
+      if (!datosUsuario.correo) {
+        console.warn('⚠️ El usuario no tiene correo registrado, no se puede enviar confirmación');
+      }
+      
       // Obtener correos de todos los administradores registrados en el sistema
       const servicioUsuarioCorreo = new ServicioUsuario();
       const admins = await servicioUsuarioCorreo.obtenerTodosLosAdmins();
       const correosAdmin = admins.map(admin => admin.email).filter(email => email);
       
+      console.log(`📧 Enviando correos: usuario=${datosUsuario.correo}, admins=${correosAdmin.length}`);
+      
       // Enviar correos de forma asincrónica (no esperar respuesta)
       if (datosUsuario.correo) {
-        servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo, correosAdmin).catch(err => 
-          console.error('Error al enviar correos:', err)
-        );
+        servicioCorreo.enviarCorreoReserva(datosUsuario, datosParaCorreo, correosAdmin)
+          .then(resultado => {
+            if (resultado) {
+              console.log('✅ Correos enviados exitosamente');
+            } else {
+              console.warn('⚠️ Hubo un problema enviando los correos, pero la reserva se creó');
+            }
+          })
+          .catch(err => {
+            console.error('❌ Error al enviar correos:', err.message);
+          });
       }
       
       return respuesta.status(200).json({

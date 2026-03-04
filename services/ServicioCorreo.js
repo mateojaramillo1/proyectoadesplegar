@@ -5,12 +5,32 @@ dotenv.config();
 
 export class ServicioCorreo {
   constructor() {
+    // Validar que existan las variables de entorno
+    const emailUser = process.env.EMAIL_USER;
+    const emailPassword = process.env.EMAIL_PASSWORD;
+
+    if (!emailUser || emailUser === 'tu_correo@gmail.com') {
+      console.warn('⚠️ ADVERTENCIA: EMAIL_USER no está configurado correctamente en .env');
+    }
+    if (!emailPassword || emailPassword === 'tu_contraseña_app') {
+      console.warn('⚠️ ADVERTENCIA: EMAIL_PASSWORD no está configurado correctamente en .env');
+    }
+
     // Configurar el transporte de nodemailer
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER || 'tu_correo@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || 'tu_contraseña_app'
+        user: emailUser,
+        pass: emailPassword
+      }
+    });
+
+    // Verificar la conexión con Gmail
+    this.transporter.verify((error, success) => {
+      if (error) {
+        console.error('❌ Error en la configuración de correo:', error.message);
+      } else if (success) {
+        console.log('✅ Servidor de correo configurado correctamente');
       }
     });
   }
@@ -267,7 +287,12 @@ export class ServicioCorreo {
       
       return true;
     } catch (error) {
-      console.error('❌ Error enviando correos:', error);
+      console.error('❌ Error enviando correos:', error.message);
+      console.error('Detalles del error:', error);
+      // Log detallado para debugging
+      if (error.response) {
+        console.error('Respuesta del servidor:', error.response);
+      }
       // No lanzar error para que la reserva se cree incluso si el correo falla
       return false;
     }
