@@ -120,39 +120,18 @@ export class ControladorReservas {
       const admins = await servicioUsuarioCorreo.obtenerTodosLosAdmins();
       const correosAdmin = admins.map(admin => admin.email).filter(email => email);
       
-      console.log('═══════════════════════════════════════════════════');
-      console.log('📧 INTENTO DE ENVÍO DE CORREOS');
-      console.log('Usuario destino:', datosUsuario.correo);
-      console.log('Nombre usuario:', datosUsuario.nombre, datosUsuario.apellido);
-      console.log('Admins encontrados:', correosAdmin.length);
-      console.log('Correos admins:', correosAdmin);
-      console.log('EMAIL_USER configurado:', process.env.EMAIL_USER ? 'SÍ' : 'NO');
-      console.log('EMAIL_PASSWORD configurado:', process.env.EMAIL_PASSWORD ? 'SÍ' : 'NO');
-      console.log('═══════════════════════════════════════════════════');
-      
-      // En Vercel (serverless) es importante esperar esta promesa antes de responder
-      // para evitar que la función termine y cancele el envío de correo.
-      let correosEnviados = false;
+      // Enviar correos (esperamos para que funcione en Vercel serverless)
       if (datosUsuario.correo) {
         try {
-          correosEnviados = await servicioCorreo.enviarCorreoReserva(
+          await servicioCorreo.enviarCorreoReserva(
             datosUsuario,
             datosParaCorreo,
             correosAdmin
           );
-
-          if (correosEnviados) {
-            console.log('✅✅✅ CORREOS ENVIADOS EXITOSAMENTE ✅✅✅');
-          } else {
-            console.warn('⚠️⚠️⚠️ PROBLEMA ENVIANDO CORREOS ⚠️⚠️⚠️');
-          }
+          console.log('✅ Correos enviados exitosamente');
         } catch (err) {
-          console.error('❌❌❌ ERROR AL ENVIAR CORREOS ❌❌❌');
-          console.error('Mensaje:', err.message);
-          console.error('Stack:', err.stack);
+          console.error('❌ Error al enviar correos:', err.message);
         }
-      } else {
-        console.error('❌ No se puede enviar correo: usuario sin email');
       }
       
       return respuesta.status(200).json({
