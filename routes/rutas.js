@@ -2,6 +2,7 @@ import express from "express";
 import { ControladorHabitaciones } from "../controllers/ControladorHabitaciones.js";
 import { ControladorReservas } from "../controllers/ControladorReservas.js";
 import { ControladorAuth } from "../controllers/ControladorAuth.js";
+import { ControladorMarketing } from "../controllers/ControladorMarketing.js";
 import { verificarToken, verificarAdmin } from "../middlewares/autenticacion.js";
 
 let controladorHabitacion = new ControladorHabitaciones();
@@ -65,3 +66,9 @@ rutas.post('/admin/procesar-checkout', verificarToken, verificarAdmin, controlad
 
 // CRM basico + fidelizacion (admin)
 rutas.get('/admin/crm-clientes', verificarToken, verificarAdmin, controladorReservas.crmClientesAdmin);
+
+// Marketing automatizado por segmentos CRM (admin)
+rutas.get('/admin/marketing/estadisticas', verificarToken, verificarAdmin, ControladorMarketing.obtenerEstadisticas);
+rutas.get('/admin/marketing/segmento/:segmento', verificarToken, verificarAdmin, ControladorMarketing.obtenerClientesSegmento);
+rutas.post('/admin/marketing/enviar-campania', verificarToken, verificarAdmin, ControladorMarketing.enviarCampania);
+rutas.post('/admin/marketing/vista-previa', verificarToken, verificarAdmin, ControladorMarketing.vistaPrevia);

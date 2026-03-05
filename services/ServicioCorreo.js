@@ -366,4 +366,33 @@ export class ServicioCorreo {
       return false;
     }
   }
+
+  /**
+   * Envía correo de marketing/campaña
+   * @param {string} correoDestino - Email del destinatario
+   * @param {string} asunto - Asunto del correo
+   * @param {string} htmlContenido - Contenido HTML del correo
+   * @returns {boolean} - True si se envió correctamente
+   */
+  async enviarCorreoMarketing(correoDestino, asunto, htmlContenido) {
+    try {
+      if (!correoDestino) {
+        console.error('❌ No hay correo de destinatario');
+        return false;
+      }
+
+      await this.transporter.sendMail({
+        from: `${process.env.EMAIL_FROM_NAME || 'Paradisus Cancún'} <${process.env.EMAIL_USER}>`,
+        to: correoDestino,
+        subject: asunto,
+        html: htmlContenido
+      });
+
+      console.log(`✅ Correo de marketing enviado a: ${correoDestino}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error enviando correo de marketing a ${correoDestino}:`, error.message);
+      return false;
+    }
+  }
 }
