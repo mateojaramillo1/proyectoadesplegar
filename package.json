@@ -9,7 +9,10 @@
     "start": "node index.js",
     "docker:db:up": "docker compose up -d mongo",
     "docker:db:down": "docker compose down",
-    "docker:db:logs": "docker compose logs -f mongo"
+    "docker:db:logs": "docker compose logs -f mongo",
+    "backup:db": "node scripts/backup-db.mjs",
+    "restore:db": "node scripts/restore-db.mjs",
+    "cleanup:audit": "node scripts/cleanup-audit.mjs"
   },
   "keywords": [],
   "author": "",

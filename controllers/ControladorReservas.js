@@ -2,6 +2,8 @@ import { ServicioReserva } from "../services/ServicioReserva.js";
 import { ServicioUsuario } from "../services/ServicioUsuario.js";
 import { ServicioCorreo } from "../services/ServicioCorreo.js";
 import { ServicioHabitacion } from "../services/ServicioHabitacion.js";
+import { ServicioAuditoria } from "../services/ServicioAuditoria.js";
+import { normalizarTexto, validarObjectId, validarRangoFechas } from "../utils/validaciones.js";
 
 function validarDatosReserva(datosReserva) {
   // Validar que las fechas estén presentes
@@ -9,22 +11,24 @@ function validarDatosReserva(datosReserva) {
     return "Las fechas de ingreso y salida son obligatorias";
   }
 
-  // Convertir a Date para comparación correcta
-  const fechaInicio = new Date(datosReserva.fechainicio);
-  const fechaFin = new Date(datosReserva.fechafin);
-
-  // Validar que sean fechas válidas
-  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
-    return "Las fechas deben estar en formato válido (YYYY-MM-DD)";
+  const rango = validarRangoFechas(datosReserva.fechainicio, datosReserva.fechafin);
+  if (!rango.ok) {
+    return rango.mensaje;
   }
 
-  // Validar que la fecha de ingreso no sea mayor que la de salida
-  if (fechaInicio >= fechaFin) {
-    return "La fecha de ingreso debe ser menor a la fecha de salida";
+  if (!validarObjectId(datosReserva.idHabitacion)) {
+    return "La habitación seleccionada es inválida";
   }
 
-  if (datosReserva.numeroniños > 0 && datosReserva.numeroadultos === 0) {
+  const ninos = Number(datosReserva.numeroniños ?? datosReserva.numeroninos ?? 0);
+  const adultos = Number(datosReserva.numeroadultos ?? 0);
+
+  if (ninos > 0 && adultos === 0) {
     return "No pueden ingresar niños solos, se requiere un adulto";
+  }
+
+  if (adultos <= 0) {
+    return "Debe existir al menos un adulto en la reserva";
   }
 
   return null;
@@ -36,12 +40,17 @@ export class ControladorReservas {
   async registrandoReservas(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
+      const auditoria = new ServicioAuditoria();
       // require authenticated user to create reservation so it is linked to their account
       if (!peticion.usuario || !peticion.usuario.id) {
         return respuesta.status(401).json({ mensaje: 'Debe iniciar sesión para crear una reserva' });
       }
 
       let datosReserva = peticion.body || {};
+      datosReserva.telefono = normalizarTexto(datosReserva.telefono, 30);
+      datosReserva.numeroninos = Number(datosReserva.numeroninos ?? datosReserva.numeroniños ?? 0);
+      datosReserva.numeroniños = datosReserva.numeroninos;
+      datosReserva.numeroadultos = Number(datosReserva.numeroadultos ?? 0);
       // link reservation to user
       datosReserva.usuario = peticion.usuario.id;
 
@@ -83,6 +92,12 @@ export class ControladorReservas {
 
       // Guardar y devolver la reserva creada
       const reservaCreada = await objetoServicioReserva.registrar(datosReserva);
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.creada',
+        entidad: 'reserva',
+        entidadId: reservaCreada._id?.toString(),
+        detalle: `Reserva creada para habitacion ${datosReserva.idHabitacion}`
+      });
       
       // Enviar correos al usuario y al admin
       const servicioCorreo = new ServicioCorreo();
@@ -141,7 +156,7 @@ export class ControladorReservas {
 
     } catch (error) {
       return respuesta.status(400).json({
-        mensje: "fallamos en la operacion " + error,
+        mensaje: "fallamos en la operacion " + error,
       });
     }
   }
@@ -150,6 +165,9 @@ export class ControladorReservas {
     let objetoServicioReserva = new ServicioReserva();
     try {
       let idReserva = peticion.params.idreserva;
+      if (!validarObjectId(idReserva)) {
+        return respuesta.status(400).json({ mensaje: 'Id de reserva invalido' });
+      }
       respuesta.status(200).json({
         mensaje: "exito buscando la reserva",
         reserva: await objetoServicioReserva.buscarPorId(idReserva),
@@ -178,9 +196,19 @@ export class ControladorReservas {
   async editandoReserva(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
+      const auditoria = new ServicioAuditoria();
       let idReserva = peticion.params.idreserva;
+      if (!validarObjectId(idReserva)) {
+        return respuesta.status(400).json({ mensaje: 'Id de reserva invalido' });
+      }
       let datosReserva = peticion.body;
       await objetoServicioReserva.editar(idReserva, datosReserva);
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.editada',
+        entidad: 'reserva',
+        entidadId: idReserva,
+        detalle: 'Reserva editada por administrador'
+      });
       respuesta.status(200).json({
         mensaje: "exito editando reserva",
       });
@@ -195,8 +223,18 @@ export class ControladorReservas {
     let objetoServicioReserva = new ServicioReserva()
 
     try {
+      const auditoria = new ServicioAuditoria();
       let idReserva = peticion.params.idreserva;
+      if (!validarObjectId(idReserva)) {
+        return respuesta.status(400).json({ mensaje: 'Id de reserva invalido' });
+      }
       await objetoServicioReserva.eliminar(idReserva)
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.eliminada',
+        entidad: 'reserva',
+        entidadId: idReserva,
+        detalle: 'Reserva eliminada por administrador'
+      });
       respuesta.status(200).json({
         mensaje: "exito eliminando reserva",
       });
@@ -211,11 +249,15 @@ export class ControladorReservas {
   async cambiarEstadoReserva(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
+      const auditoria = new ServicioAuditoria();
       // Solo admin puede cambiar estado (ya validado por middleware, pero doble check)
       if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
         return respuesta.status(403).json({ mensaje: 'No autorizado' });
       }
       let idReserva = peticion.params.idreserva;
+      if (!validarObjectId(idReserva)) {
+        return respuesta.status(400).json({ mensaje: 'Id de reserva invalido' });
+      }
       let { estado } = peticion.body;
       if (!['pendiente', 'aprobada', 'rechazada'].includes(estado)) {
         return respuesta.status(400).json({ mensaje: 'Estado inválido' });
@@ -231,6 +273,12 @@ export class ControladorReservas {
       }
       
       await objetoServicioReserva.editar(idReserva, datosActualizar);
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.estado.cambiado',
+        entidad: 'reserva',
+        entidadId: idReserva,
+        detalle: `Nuevo estado: ${estado}`
+      });
       
       // Si se aprueba, enviar correo al usuario
       if (estado === 'aprobada' && reserva && reserva.usuario) {
@@ -273,12 +321,22 @@ export class ControladorReservas {
   async verificarPago(peticion, respuesta) {
     let objetoServicioReserva = new ServicioReserva();
     try {
+      const auditoria = new ServicioAuditoria();
       if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
         return respuesta.status(403).json({ mensaje: 'No autorizado' });
       }
       let idReserva = peticion.params.idreserva;
+      if (!validarObjectId(idReserva)) {
+        return respuesta.status(400).json({ mensaje: 'Id de reserva invalido' });
+      }
       let { pagoVerificado } = peticion.body;
       await objetoServicioReserva.editar(idReserva, { pagoVerificado: !!pagoVerificado });
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.pago.verificado',
+        entidad: 'reserva',
+        entidadId: idReserva,
+        detalle: `pagoVerificado=${!!pagoVerificado}`
+      });
       respuesta.status(200).json({ mensaje: 'Pago actualizado' });
     } catch (error) {
       respuesta.status(400).json({ mensaje: 'fallamos en la operacion ' + error });
@@ -332,6 +390,88 @@ export class ControladorReservas {
       });
     } catch (error) {
       respuesta.status(400).json({ mensaje: 'Error verificando disponibilidad: ' + error });
+    }
+  }
+
+  async dashboardAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+    const servicioHabitacion = new ServicioHabitacion();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const desde = peticion.query.desde ? String(peticion.query.desde) : undefined;
+      const hasta = peticion.query.hasta ? String(peticion.query.hasta) : undefined;
+      const habitaciones = await servicioHabitacion.buscarTodas();
+
+      const dashboard = await objetoServicioReserva.obtenerDashboardAdmin({
+        desde,
+        hasta,
+        totalHabitaciones: habitaciones.length
+      });
+
+      return respuesta.status(200).json({
+        mensaje: 'Dashboard cargado',
+        ...dashboard
+      });
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error obteniendo dashboard: ' + error.message });
+    }
+  }
+
+  async disponibilidadMensualAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const idHabitacion = String(peticion.query.idHabitacion || '');
+      const anio = Number(peticion.query.anio);
+      const mes = Number(peticion.query.mes);
+
+      if (!idHabitacion || !validarObjectId(idHabitacion)) {
+        return respuesta.status(400).json({ mensaje: 'idHabitacion invalido' });
+      }
+
+      if (!anio || !mes || mes < 1 || mes > 12) {
+        return respuesta.status(400).json({ mensaje: 'Debe enviar anio y mes validos' });
+      }
+
+      const disponibilidad = await objetoServicioReserva.obtenerDisponibilidadMensual(idHabitacion, anio, mes);
+      return respuesta.status(200).json({
+        mensaje: 'Disponibilidad mensual cargada',
+        ...disponibilidad
+      });
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error obteniendo disponibilidad mensual: ' + error.message });
+    }
+  }
+
+  async exportarReservasAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const estado = peticion.query.estado ? String(peticion.query.estado) : 'todos';
+      const pago = peticion.query.pago ? String(peticion.query.pago) : 'todos';
+      const desde = peticion.query.desde ? String(peticion.query.desde) : undefined;
+      const hasta = peticion.query.hasta ? String(peticion.query.hasta) : undefined;
+
+      const csv = await objetoServicioReserva.exportarReservasCSV({ estado, pago, desde, hasta });
+      const nombreArchivo = `reservas-${new Date().toISOString().slice(0, 10)}.csv`;
+
+      respuesta.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      respuesta.setHeader('Content-Disposition', `attachment; filename=${nombreArchivo}`);
+      return respuesta.status(200).send(csv);
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error exportando reservas: ' + error.message });
     }
   }
 }

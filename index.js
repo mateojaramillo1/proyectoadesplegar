@@ -3,10 +3,12 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import { rutas } from "./routes/rutas.js";
 import { establecerConexion } from "./database/conexion.js";
+import { crearRateLimit } from './middlewares/rateLimit.js';
 dotenv.config({ path: '.env' });
 dotenv.config({ path: '.env.local', override: true });
 
 const app = express();
+app.set('trust proxy', 1);
 const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://angularproyect-topaz.vercel.app';
 const allowedOrigins = [
   frontendOrigin,
@@ -62,10 +64,32 @@ app.use((req, res, next) => {
 });
 const PORT = process.env.PORT || 3003;
 
+const limitadorGlobal = crearRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 180,
+  message: 'Demasiadas solicitudes desde esta IP. Espere unos minutos.'
+});
+
+const limitadorAuth = crearRateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 35,
+  message: 'Demasiados intentos de autenticacion. Intente nuevamente.'
+});
+
 // middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '200kb' }));
+app.use(limitadorGlobal);
+app.use('/auth', limitadorAuth);
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  next();
+});
 
 app.use(async (req, res, next) => {
   if (req.path === '/' || req.path === '/health') {
@@ -94,7 +118,7 @@ app.use((req, res) => res.status(404).json({ mensaje: 'Ruta no encontrada' }));
 // error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
-  res.status(500).json({ mensaje: 'Error servidor' });
+  res.status(err.status || 500).json({ mensaje: err.message || 'Error servidor' });
 });
 
 // para Vercel serverless

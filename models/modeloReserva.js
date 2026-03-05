@@ -69,6 +69,12 @@ const Reserva = new Schema({
         default: 1
     }
 
+}, {
+    timestamps: true,
+    versionKey: false
 })
+
+Reserva.index({ idHabitacion: 1, fechainicio: 1, fechafin: 1, estado: 1 });
+Reserva.index({ usuario: 1, fechainicio: -1 });
 
 export const modeloReserva=mongoose.model('reservas',Reserva)

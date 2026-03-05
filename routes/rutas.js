@@ -19,11 +19,11 @@ rutas.get("/buscarhabitacion/:idhabitacion",controladorHabitacion.buscandoHabita
 // solo admin puede registrar habitaciones
 rutas.post("/registrarhabitacion", verificarToken, verificarAdmin, controladorHabitacion.registrandoHabitacion);
 
-rutas.put("/editandohabitacion/:idhabitacion",controladorHabitacion.editandoHabitacion);
+rutas.put("/editandohabitacion/:idhabitacion", verificarToken, verificarAdmin, controladorHabitacion.editandoHabitacion);
 
-rutas.get("/buscarreservas",controladorReservas.buscandoReservas);
+rutas.get("/buscarreservas", verificarToken, verificarAdmin, controladorReservas.buscandoReservas);
 
-rutas.get("/buscarreserva/:idreserva",controladorReservas.buscandoReserva);
+rutas.get("/buscarreserva/:idreserva", verificarToken, verificarAdmin, controladorReservas.buscandoReserva);
 
 // reservations require authentication so they are linked to the user
 rutas.post("/registrarreserva", verificarToken, controladorReservas.registrandoReservas);
@@ -33,9 +33,9 @@ rutas.post('/auth/register', controladorAuth.registrarUsuario);
 rutas.post('/auth/register-admin', verificarToken, verificarAdmin, controladorAuth.registrarAdmin);
 rutas.post('/auth/login', controladorAuth.login);
 
-rutas.put("/editandoreserva/:idreserva",controladorReservas.editandoReserva);
+rutas.put("/editandoreserva/:idreserva", verificarToken, verificarAdmin, controladorReservas.editandoReserva);
 
-rutas.delete("/eliminandoreserva/:idreserva",controladorReservas.eliminandoReserva);
+rutas.delete("/eliminandoreserva/:idreserva", verificarToken, verificarAdmin, controladorReservas.eliminandoReserva);
 
 // Cambiar estado de reserva (solo admin)
 rutas.put('/cambiar-estado-reserva/:idreserva', verificarToken, verificarAdmin, controladorReservas.cambiarEstadoReserva);
@@ -48,3 +48,12 @@ rutas.get('/mis-reservas', verificarToken, controladorReservas.misReservas);
 
 // Verificar disponibilidad de habitación (público, pero útil antes de reservar)
 rutas.post('/verificar-disponibilidad', controladorReservas.verificarDisponibilidad);
+
+// Dashboard analitico admin
+rutas.get('/admin/dashboard-reservas', verificarToken, verificarAdmin, controladorReservas.dashboardAdmin);
+
+// Disponibilidad mensual por habitacion (admin)
+rutas.get('/admin/disponibilidad-mensual', verificarToken, verificarAdmin, controladorReservas.disponibilidadMensualAdmin);
+
+// Exportable CSV para Excel (admin)
+rutas.get('/admin/exportar-reservas', verificarToken, verificarAdmin, controladorReservas.exportarReservasAdmin);

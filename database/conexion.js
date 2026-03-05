@@ -26,11 +26,13 @@ export async function establecerConexion(){
         mongoose.set('bufferCommands', false)
         mongoose.set('bufferTimeoutMS', 20000)
 
+        const maxPoolSize = Number(process.env.DB_MAX_POOL_SIZE || 15)
+
         promesaConexion = mongoose.connect(process.env.DATABASE, {
             serverSelectionTimeoutMS: 20000,
             connectTimeoutMS: 20000,
             socketTimeoutMS: 20000,
-            maxPoolSize: 10
+            maxPoolSize
         })
 
         conexionActiva = await promesaConexion
