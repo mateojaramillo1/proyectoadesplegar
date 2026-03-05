@@ -91,6 +91,10 @@ Todos requieren `Bearer token` de administrador:
 - `GET /admin/dashboard-reservas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`
 - `GET /admin/disponibilidad-mensual?idHabitacion=<id>&anio=2026&mes=3`
 - `GET /admin/exportar-reservas?estado=todos&pago=todos&desde=YYYY-MM-DD&hasta=YYYY-MM-DD`
+- `POST /admin/generar-checkin-qr/:idreserva`
+- `POST /admin/procesar-checkin` body `{ "token": "..." }`
+- `POST /admin/procesar-checkout` body `{ "token": "..." }`
+- `GET /admin/crm-clientes?limite=50`
 
 Uso recomendado:
 

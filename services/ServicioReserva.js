@@ -1,4 +1,6 @@
+import crypto from 'node:crypto';
 import { modeloReserva } from "../models/modeloReserva.js";
+import { modeloUsuario } from '../models/modeloUsuario.js';
 
 function inicioDia(fecha) {
   const d = new Date(fecha);
@@ -41,6 +43,24 @@ function escapeCsv(valor) {
     return `"${texto.replace(/"/g, '""')}"`;
   }
   return texto;
+}
+
+function generarDigitalKey() {
+  const raw = crypto.randomBytes(4).toString('hex').toUpperCase();
+  return `${raw.slice(0, 4)}-${raw.slice(4)}`;
+}
+
+function definirNivelFidelidad(totalReservas) {
+  if (totalReservas >= 12) {
+    return { nivel: 'platino', descuento: 15 };
+  }
+  if (totalReservas >= 6) {
+    return { nivel: 'oro', descuento: 10 };
+  }
+  if (totalReservas >= 3) {
+    return { nivel: 'plata', descuento: 5 };
+  }
+  return { nivel: 'bronce', descuento: 0 };
 }
 
 export class ServicioReserva {
@@ -312,5 +332,124 @@ export class ServicioReserva {
     }
 
     return lineas.join('\n');
+  }
+
+  async generarQrCheckIn(idReserva, frontendOrigin) {
+    const reserva = await modeloReserva.findById(idReserva);
+    if (!reserva) {
+      throw new Error('Reserva no encontrada');
+    }
+
+    if (reserva.estado !== 'aprobada') {
+      throw new Error('Solo reservas aprobadas pueden generar QR de check-in');
+    }
+
+    const token = crypto.randomBytes(24).toString('hex');
+    const digitalKey = generarDigitalKey();
+
+    reserva.checkInQrToken = token;
+    reserva.digitalKey = digitalKey;
+    reserva.checkInEstado = 'generado';
+    reserva.checkInAt = null;
+    reserva.checkOutAt = null;
+
+    await reserva.save();
+
+    const qrPayload = JSON.stringify({
+      reservaId: reserva._id.toString(),
+      token,
+      tipo: 'checkin'
+    });
+
+    const qrDataText = `${frontendOrigin}/admin-reservas?checkinToken=${encodeURIComponent(token)}`;
+
+    return {
+      reservaId: reserva._id.toString(),
+      token,
+      digitalKey,
+      qrPayload,
+      qrDataText
+    };
+  }
+
+  async procesarCheckIn(token) {
+    const reserva = await modeloReserva.findOne({ checkInQrToken: token });
+    if (!reserva) {
+      throw new Error('Token QR invalido');
+    }
+
+    if (reserva.checkInEstado === 'checkin' || reserva.checkInEstado === 'checkout') {
+      return reserva;
+    }
+
+    reserva.checkInEstado = 'checkin';
+    reserva.checkInAt = new Date();
+    await reserva.save();
+    return reserva;
+  }
+
+  async procesarCheckOut(token) {
+    const reserva = await modeloReserva.findOne({ checkInQrToken: token });
+    if (!reserva) {
+      throw new Error('Token QR invalido');
+    }
+
+    if (reserva.checkInEstado !== 'checkin' && reserva.checkInEstado !== 'checkout') {
+      throw new Error('La reserva no ha realizado check-in');
+    }
+
+    if (reserva.checkInEstado === 'checkout') {
+      return reserva;
+    }
+
+    reserva.checkInEstado = 'checkout';
+    reserva.checkOutAt = new Date();
+    await reserva.save();
+    return reserva;
+  }
+
+  async obtenerCRMClientes({ limite = 40 } = {}) {
+    const pipeline = [
+      {
+        $match: {
+          usuario: { $exists: true, $ne: null },
+          estado: { $in: ['aprobada', 'pendiente'] }
+        }
+      },
+      {
+        $group: {
+          _id: '$usuario',
+          totalReservas: { $sum: 1 },
+          gastoTotal: { $sum: { $ifNull: ['$precioTotal', 0] } },
+          nochesTotales: { $sum: { $ifNull: ['$noches', 0] } },
+          ultimaReserva: { $max: '$createdAt' }
+        }
+      },
+      { $sort: { gastoTotal: -1, totalReservas: -1 } },
+      { $limit: limite }
+    ];
+
+    const agregados = await modeloReserva.aggregate(pipeline);
+    const ids = agregados.map((a) => a._id);
+    const usuarios = await modeloUsuario.find({ _id: { $in: ids } }).lean();
+    const mapUsuarios = new Map(usuarios.map((u) => [u._id.toString(), u]));
+
+    return agregados.map((item) => {
+      const user = mapUsuarios.get(item._id.toString()) || {};
+      const fidelidad = definirNivelFidelidad(Number(item.totalReservas || 0));
+      return {
+        usuarioId: item._id.toString(),
+        nombre: user.nombre || 'Cliente',
+        apellido: user.apellido || '',
+        email: user.email || '',
+        telefono: user.telefono || '',
+        totalReservas: Number(item.totalReservas || 0),
+        nochesTotales: Number(item.nochesTotales || 0),
+        gastoTotal: Number(item.gastoTotal || 0),
+        ultimaReserva: item.ultimaReserva,
+        nivelFidelidad: fidelidad.nivel,
+        descuentoSugerido: fidelidad.descuento
+      };
+    });
   }
 }

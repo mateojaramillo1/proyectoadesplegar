@@ -89,6 +89,11 @@ export class ControladorReservas {
       // Nueva reserva siempre empieza como pendiente
       datosReserva.estado = 'pendiente';
       datosReserva.pagoVerificado = false;
+      datosReserva.checkInEstado = 'pendiente';
+      datosReserva.checkInQrToken = '';
+      datosReserva.digitalKey = '';
+      datosReserva.checkInAt = null;
+      datosReserva.checkOutAt = null;
 
       // Guardar y devolver la reserva creada
       const reservaCreada = await objetoServicioReserva.registrar(datosReserva);
@@ -472,6 +477,115 @@ export class ControladorReservas {
       return respuesta.status(200).send(csv);
     } catch (error) {
       return respuesta.status(400).json({ mensaje: 'Error exportando reservas: ' + error.message });
+    }
+  }
+
+  async generarQrCheckInAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+    const auditoria = new ServicioAuditoria();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const idReserva = String(peticion.params.idreserva || '');
+      if (!validarObjectId(idReserva)) {
+        return respuesta.status(400).json({ mensaje: 'Id de reserva invalido' });
+      }
+
+      const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://angularproyect-topaz.vercel.app';
+      const data = await objetoServicioReserva.generarQrCheckIn(idReserva, frontendOrigin);
+
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.checkin.qr.generado',
+        entidad: 'reserva',
+        entidadId: idReserva,
+        detalle: 'QR de check-in generado'
+      });
+
+      return respuesta.status(200).json({
+        mensaje: 'QR de check-in generado',
+        ...data
+      });
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error generando QR de check-in: ' + error.message });
+    }
+  }
+
+  async procesarCheckInAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+    const auditoria = new ServicioAuditoria();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const token = String(peticion.body?.token || '').trim();
+      if (!token) {
+        return respuesta.status(400).json({ mensaje: 'Token QR requerido' });
+      }
+
+      const reserva = await objetoServicioReserva.procesarCheckIn(token);
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.checkin.procesado',
+        entidad: 'reserva',
+        entidadId: reserva._id?.toString(),
+        detalle: 'Check-in realizado'
+      });
+
+      return respuesta.status(200).json({ mensaje: 'Check-in realizado', reserva });
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error procesando check-in: ' + error.message });
+    }
+  }
+
+  async procesarCheckOutAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+    const auditoria = new ServicioAuditoria();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const token = String(peticion.body?.token || '').trim();
+      if (!token) {
+        return respuesta.status(400).json({ mensaje: 'Token QR requerido' });
+      }
+
+      const reserva = await objetoServicioReserva.procesarCheckOut(token);
+      await auditoria.registrar(peticion, {
+        evento: 'reserva.checkout.procesado',
+        entidad: 'reserva',
+        entidadId: reserva._id?.toString(),
+        detalle: 'Check-out realizado'
+      });
+
+      return respuesta.status(200).json({ mensaje: 'Check-out realizado', reserva });
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error procesando check-out: ' + error.message });
+    }
+  }
+
+  async crmClientesAdmin(peticion, respuesta) {
+    const objetoServicioReserva = new ServicioReserva();
+
+    try {
+      if (!peticion.usuario || peticion.usuario.rol !== 'admin') {
+        return respuesta.status(403).json({ mensaje: 'No autorizado' });
+      }
+
+      const limite = Number(peticion.query.limite || 40);
+      const clientes = await objetoServicioReserva.obtenerCRMClientes({ limite });
+
+      return respuesta.status(200).json({
+        mensaje: 'CRM cargado',
+        clientes
+      });
+    } catch (error) {
+      return respuesta.status(400).json({ mensaje: 'Error cargando CRM: ' + error.message });
     }
   }
 }

@@ -57,3 +57,11 @@ rutas.get('/admin/disponibilidad-mensual', verificarToken, verificarAdmin, contr
 
 // Exportable CSV para Excel (admin)
 rutas.get('/admin/exportar-reservas', verificarToken, verificarAdmin, controladorReservas.exportarReservasAdmin);
+
+// Check-in/check-out digital (admin)
+rutas.post('/admin/generar-checkin-qr/:idreserva', verificarToken, verificarAdmin, controladorReservas.generarQrCheckInAdmin);
+rutas.post('/admin/procesar-checkin', verificarToken, verificarAdmin, controladorReservas.procesarCheckInAdmin);
+rutas.post('/admin/procesar-checkout', verificarToken, verificarAdmin, controladorReservas.procesarCheckOutAdmin);
+
+// CRM basico + fidelizacion (admin)
+rutas.get('/admin/crm-clientes', verificarToken, verificarAdmin, controladorReservas.crmClientesAdmin);

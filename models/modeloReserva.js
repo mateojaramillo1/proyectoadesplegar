@@ -67,6 +67,27 @@ const Reserva = new Schema({
     noches: {
         type: Number,
         default: 1
+    },
+    checkInEstado: {
+        type: String,
+        enum: ['pendiente', 'generado', 'checkin', 'checkout'],
+        default: 'pendiente'
+    },
+    checkInQrToken: {
+        type: String,
+        default: ''
+    },
+    digitalKey: {
+        type: String,
+        default: ''
+    },
+    checkInAt: {
+        type: Date,
+        default: null
+    },
+    checkOutAt: {
+        type: Date,
+        default: null
     }
 
 }, {
