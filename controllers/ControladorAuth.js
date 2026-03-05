@@ -205,8 +205,8 @@ export class ControladorAuth {
       await servicioUsuario.actualizarTokenReinicio(usuario.id, tokenCambio);
 
       // Construir enlace de reinicio
-      const baseUrl = process.env.FRONTEND_URL || 'https://www.hotelparadisuscancun.com';
-      const enlaceReinicio = `${baseUrl}/cambiar-contrasena?token=${tokenCambio}`;
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+      const enlaceReinicio = `${baseUrl}/cambiar-contrasena-token?token=${tokenCambio}`;
 
       // Enviar correo
       await servicioCorreo.enviarCorreoCambioContrasena(
