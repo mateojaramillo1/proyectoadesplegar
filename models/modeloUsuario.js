@@ -33,6 +33,10 @@ const UsuarioSchema = new Schema(
 			type: String,
 			enum: ['user', 'admin'],
 			default: 'user'
+		},
+		tokenReinicio: {
+			type: String,
+			default: null
 		}
 	},
 	{

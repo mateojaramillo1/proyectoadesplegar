@@ -33,6 +33,8 @@ rutas.post("/registrarreserva", verificarToken, controladorReservas.registrandoR
 rutas.post('/auth/register', controladorAuth.registrarUsuario);
 rutas.post('/auth/register-admin', verificarToken, verificarAdmin, controladorAuth.registrarAdmin);
 rutas.post('/auth/login', controladorAuth.login);
+rutas.post('/auth/solicitar-cambio-contrasena', controladorAuth.solicitarCambioContrasena.bind(controladorAuth));
+rutas.post('/auth/confirmar-cambio-contrasena', controladorAuth.confirmarCambioContrasena.bind(controladorAuth));
 
 rutas.put("/editandoreserva/:idreserva", verificarToken, verificarAdmin, controladorReservas.editandoReserva);
 

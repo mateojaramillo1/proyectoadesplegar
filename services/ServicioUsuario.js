@@ -57,4 +57,22 @@ export class ServicioUsuario {
     const admins = await modeloUsuario.find({ rol: 'admin' });
     return admins.map(admin => this.normalizarUsuario(admin));
   }
+
+  async actualizar(id, datos) {
+    const usuarioActualizado = await modeloUsuario.findByIdAndUpdate(
+      id,
+      datos,
+      { new: true }
+    );
+    return this.normalizarUsuario(usuarioActualizado);
+  }
+
+  async actualizarTokenReinicio(id, token) {
+    const usuarioActualizado = await modeloUsuario.findByIdAndUpdate(
+      id,
+      { tokenReinicio: token },
+      { new: true }
+    );
+    return this.normalizarUsuario(usuarioActualizado);
+  }
 }

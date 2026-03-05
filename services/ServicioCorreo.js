@@ -395,4 +395,81 @@ export class ServicioCorreo {
       return false;
     }
   }
+
+  async enviarCorreoCambioContrasena(email, nombre, apellido, enlaceReinicio) {
+    try {
+      if (!email) {
+        console.error('❌ No hay correo de usuario');
+        return false;
+      }
+
+      const asunto = '🔐 Cambio de Contraseña - Paradisus Cancún';
+
+      const htmlContenido = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
+            .container { max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; }
+            .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
+            .header h1 { margin: 0; font-size: 24px; }
+            .content { padding: 30px; }
+            .mensaje { color: #555; line-height: 1.6; }
+            .enlace-boton { display: block; background-color: #27ae60; color: white; padding: 12px 30px; text-align: center; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .enlace-boton:hover { background-color: #229954; }
+            .aviso { background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0; color: #856404; }
+            .footer { background-color: #f8f9fa; padding: 15px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #e0e0e0; }
+            .expiracion { color: #d32f2f; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Cambio de Contraseña</h1>
+            </div>
+            <div class="content">
+              <p class="mensaje">¡Hola <strong>${nombre} ${apellido}</strong>!</p>
+              
+              <p class="mensaje">Recibimos una solicitud para cambiar la contraseña de tu cuenta en Paradisus Cancún. Si fuiste tú, haz clic en el botón de abajo para continuar:</p>
+              
+              <a href="${enlaceReinicio}" class="enlace-boton">🔑 Cambiar Contraseña</a>
+              
+              <p class="mensaje">O copia y pega esta dirección en tu navegador:</p>
+              <p style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; word-break: break-all; color: #555;">${enlaceReinicio}</p>
+              
+              <div class="aviso">
+                <strong>⏰ Importante:</strong> Este enlace es válido por <span class="expiracion">24 horas</span>. Después de este tiempo, deberás solicitar un nuevo cambio de contraseña.
+              </div>
+              
+              <div class="aviso">
+                <strong>🔒 Si no solicitaste este cambio:</strong> No hagas clic en el enlace. Tu cuenta está segura y nadie puede cambiar tu contraseña sin acceder a tu correo electrónico.
+              </div>
+              
+              <p class="mensaje">Si tienes preguntas o problemas, contáctanos en <strong>admin@hotelparadisuscancun.com</strong></p>
+            </div>
+            <div class="footer">
+              <p>© 2026 Paradisus Cancún. Sistema de gestión de reservas.</p>
+              <p>Este es un correo automático, por favor no responder directamente.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      await this.transporter.sendMail({
+        from: `${process.env.EMAIL_FROM_NAME || 'Paradisus Cancún'} <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: asunto,
+        html: htmlContenido
+      });
+
+      console.log(`✅ Correo de cambio de contraseña enviado a: ${email}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error enviando correo de cambio de contraseña a ${email}:`, error.message);
+      return false;
+    }
+  }
 }

@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { ServicioUsuario } from '../services/ServicioUsuario.js';
 import { ServicioAuditoria } from '../services/ServicioAuditoria.js';
+import { ServicioCorreo } from '../services/ServicioCorreo.js';
 import { normalizarTexto, validarEmail, validarPasswordSegura } from '../utils/validaciones.js';
 
 const JWT_SECRET = process.env.SECRETO_JWT || 'secretkey';
@@ -167,6 +168,139 @@ export class ControladorAuth {
       return respuesta.status(200).json({ mensaje: 'Login correcto', token, usuario: { id: usuario.id, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, rol: usuario.rol } });
     } catch (error) {
       return respuesta.status(500).json({ mensaje: 'Error en login: ' + error.message });
+    }
+  }
+
+  async solicitarCambioContrasena(peticion, respuesta) {
+    try {
+      const auditoria = new ServicioAuditoria();
+      const servicioUsuario = new ServicioUsuario();
+      const servicioCorreo = new ServicioCorreo();
+      
+      const email = String(peticion.body?.email || '').trim().toLowerCase();
+
+      if (!email || !validarEmail(email)) {
+        return respuesta.status(400).json({ mensaje: 'Email inválido' });
+      }
+
+      const usuario = await servicioUsuario.buscarPorEmail(email);
+      if (!usuario) {
+        // Por seguridad, no indicamos si el email existe o no
+        await auditoria.registrar(peticion, {
+          evento: 'auth.cambio-contrasena.no-existe',
+          entidad: 'usuario',
+          detalle: `Intento de cambio de contraseña para email inexistente: ${email}`
+        });
+        return respuesta.status(200).json({ mensaje: 'Si el correo existe, recibirás un enlace para cambiar tu contraseña' });
+      }
+
+      // Generar token para cambio de contraseña (válido por 24 horas)
+      const tokenCambio = jwt.sign(
+        { id: usuario.id, email: usuario.email, type: 'password-reset' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Guardar el token en la base de datos (campo temporal)
+      await servicioUsuario.actualizarTokenReinicio(usuario.id, tokenCambio);
+
+      // Construir enlace de reinicio
+      const baseUrl = process.env.FRONTEND_URL || 'https://www.hotelparadisuscancun.com';
+      const enlaceReinicio = `${baseUrl}/cambiar-contrasena?token=${tokenCambio}`;
+
+      // Enviar correo
+      await servicioCorreo.enviarCorreoCambioContrasena(
+        usuario.email,
+        usuario.nombre,
+        usuario.apellido,
+        enlaceReinicio
+      );
+
+      await auditoria.registrar(peticion, {
+        evento: 'auth.cambio-contrasena.solicitado',
+        entidad: 'usuario',
+        entidadId: usuario.id,
+        detalle: `Solicitud de cambio de contraseña para ${email}`
+      });
+
+      return respuesta.status(200).json({ 
+        mensaje: 'Si el correo existe, recibirás un enlace para cambiar tu contraseña' 
+      });
+    } catch (error) {
+      console.error('Error solicitando cambio de contraseña:', error);
+      return respuesta.status(500).json({ 
+        mensaje: 'Error procesando solicitud: ' + error.message 
+      });
+    }
+  }
+
+  async confirmarCambioContrasena(peticion, respuesta) {
+    try {
+      const auditoria = new ServicioAuditoria();
+      const servicioUsuario = new ServicioUsuario();
+      const { token, nuevaContrasena } = peticion.body;
+
+      if (!token || !nuevaContrasena) {
+        return respuesta.status(400).json({ mensaje: 'Token y contraseña requeridos' });
+      }
+
+      // Validar la contraseña
+      if (!validarPasswordSegura(nuevaContrasena)) {
+        return respuesta.status(400).json({ 
+          mensaje: 'La contraseña debe tener al menos 8 caracteres, letras y números' 
+        });
+      }
+
+      // Verificar el token
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.type !== 'password-reset') {
+          return respuesta.status(400).json({ mensaje: 'Token inválido' });
+        }
+      } catch (error) {
+        return respuesta.status(400).json({ 
+          mensaje: 'El enlace ha expirado o es inválido. Por favor solicita uno nuevo.' 
+        });
+      }
+
+      // Obtener usuario
+      const usuario = await servicioUsuario.buscarPorEmail(decoded.email);
+      if (!usuario) {
+        return respuesta.status(400).json({ mensaje: 'Usuario no encontrado' });
+      }
+
+      // Validar que el token en BD coincida
+      if (usuario.tokenReinicio !== token) {
+        return respuesta.status(400).json({ 
+          mensaje: 'El enlace no es válido. Por favor solicita uno nuevo.' 
+        });
+      }
+
+      // Hashear nueva contraseña
+      const hash = await bcrypt.hash(nuevaContrasena, 10);
+
+      // Actualizar contraseña y limpiar token
+      await servicioUsuario.actualizar(usuario.id, {
+        password: hash,
+        tokenReinicio: null
+      });
+
+      await auditoria.registrar(peticion, {
+        evento: 'auth.cambio-contrasena.completado',
+        entidad: 'usuario',
+        entidadId: usuario.id,
+        detalle: `Contraseña cambiad exitosamente para ${usuario.email}`
+      });
+
+      return respuesta.status(200).json({ 
+        mensaje: 'Contraseña actualizada correctamente. Inicia sesión con tu nueva contraseña.' 
+      });
+    } catch (error) {
+      console.error('Error confirmando cambio de contraseña:', error);
+      return respuesta.status(500).json({ 
+        mensaje: 'Error procesando cambio: ' + error.message 
+      });
     }
   }
 }
